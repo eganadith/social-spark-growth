@@ -49,8 +49,8 @@ async function edgeFunctionErrorDetail(response: Response | undefined, fallback:
   return response.status ? `[${response.status}] ${fallback}` : fallback;
 }
 
-const devLocalCheckout = import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
-const prodDevCheckoutForbidden = import.meta.env.PROD && devLocalCheckout;
+/** Demo checkout without Ziina — only when running `vite` locally; ignored in production builds even if Netlify sets the var. */
+const devLocalCheckout = import.meta.env.DEV && import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
 
 function supabaseProjectRefHint(): string {
   try {
@@ -310,19 +310,6 @@ export default function OrderPage() {
           <Button asChild variant="outline">
             <Link to="/">Home</Link>
           </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (prodDevCheckoutForbidden) {
-    return (
-      <div className="min-h-screen pt-24 pb-16 px-4">
-        <div className="max-w-xl mx-auto rounded-2xl border border-destructive/50 bg-destructive/10 p-8 text-center">
-          <h1 className="text-xl font-bold mb-2 text-destructive">Configuration error</h1>
-          <p className="text-sm text-muted-foreground">
-            <code className="text-xs">VITE_DEV_LOCAL_CHECKOUT</code> must not be enabled in production builds.
-          </p>
         </div>
       </div>
     );
