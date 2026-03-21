@@ -108,12 +108,11 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Verify `X-Hmac-Signature` (hex SHA-256 HMAC of raw body) when ZIINA_WEBHOOK_SECRET is set. */
+/** Verify `X-Hmac-Signature` (hex SHA-256 HMAC of raw body). Requires `ZIINA_WEBHOOK_SECRET`. */
 export async function verifyZiinaWebhook(req: Request, rawBody: string): Promise<boolean> {
   const secret = Deno.env.get("ZIINA_WEBHOOK_SECRET")?.trim();
   if (!secret) {
-    console.warn("ZIINA_WEBHOOK_SECRET not set; webhook signature not verified");
-    return true;
+    return false;
   }
   const sig =
     req.headers.get("x-hmac-signature") ??

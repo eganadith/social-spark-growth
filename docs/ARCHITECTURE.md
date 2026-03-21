@@ -180,6 +180,7 @@ Self-referral and duplicate handling are enforced in app/auth logic where implem
 
 | Doc | Content |
 |-----|---------|
+| [SYSTEM_FULL_A_TO_Z.md](./SYSTEM_FULL_A_TO_Z.md) | Full A–Z: auth, RLS, Edge Functions, known loopholes (architecture validation) |
 | [WEBSITE.md](./WEBSITE.md) | Site map, env tables, troubleshooting |
 | [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) | Deploy functions & secrets |
 | [ZIINA.md](./ZIINA.md) | Payment + webhook setup |

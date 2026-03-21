@@ -33,7 +33,8 @@ Global chrome: **Navbar**, **Footer**, **WhatsApp** floating button, **sticky gr
 | `/` | Home (`Index`) | Marketing + packages grid |
 | `/order` | Order | Select package (or preselected), enter profile URL, checkout |
 | `/track` | Track | Look up order by tracking ID |
-| `/auth` | Auth | Sign in / sign up (`?next=` redirect, default `/dashboard`) |
+| `/auth` | Auth | Sign in / sign up (`?next=` redirect; `socioly_next` in localStorage preserves checkout return) |
+| `/check-email` | Check email | After signup when confirmation required — resume link to sign-in with `?next=` |
 | `/dashboard` | Dashboard | Orders, referral link, rewards (auth required) |
 | `/admin` | Admin | Orders, users, referrals, rewards (auth + `app_metadata.role === "admin"`) |
 | `/terms` | Terms | Legal |
@@ -74,8 +75,8 @@ Assets live under `public/Images/` where referenced.
 
 ## 6. Track order (`/track`)
 
-- Public lookup by **tracking ID** (and related display of status/progress).  
-- Backed by Supabase queries subject to RLS policies defined in migrations.
+- Public lookup by **tracking ID** via RPC `get_order_by_tracking` — returns **status, progress, created_at** only (no profile link or amount).  
+- New checkouts use a **UUID** tracking id; older `SL-…` ids still resolve if present in the database.
 
 ---
 
@@ -259,6 +260,7 @@ netlify.toml
 
 ## 18. Related documentation
 
+- [SYSTEM_FULL_A_TO_Z.md](./SYSTEM_FULL_A_TO_Z.md) — end-to-end flows, auth/session pitfalls, RLS vs Edge Functions, known gaps (architecture review)  
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — full architecture, flows, UX/SEO roadmap (polished)  
 - [README.md](../README.md) — quick start and Supabase checklist  
 - [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) — deploy functions and secrets  

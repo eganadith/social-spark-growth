@@ -11,6 +11,7 @@ import OrderPage from "./pages/OrderPage";
 import TrackPage from "./pages/TrackPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
+import CheckEmailPage from "./pages/CheckEmailPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReferralCapture from "./components/ReferralCapture";
 import ScrollToHash from "./components/ScrollToHash";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/order" element={<OrderPage />} />
             <Route path="/track" element={<TrackPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/check-email" element={<CheckEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/terms" element={<TermsPage />} />

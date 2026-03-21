@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { persistAuthNext, consumeAuthNext, peekAuthNext } from "@/lib/authRedirect";
 
 export default function AuthPage() {
   const [params] = useSearchParams();
-  const next = params.get("next") || "/dashboard";
+  const nextFromUrl = params.get("next") || "/dashboard";
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signIn, signUp, isConfigured, loading: authLoading } = useAuth();
@@ -15,6 +16,13 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const q = params.get("next");
+    if (q && q.startsWith("/") && !q.startsWith("//")) {
+      persistAuthNext(q);
+    }
+  }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,9 +37,10 @@ export default function AuthPage() {
         if (!data.session) {
           toast({
             title: "Check your email",
-            description: "Confirm your account if email verification is enabled, then sign in.",
+            description: "We sent a confirmation link. After you confirm, sign in to continue checkout.",
           });
-          navigate("/", { replace: true });
+          const resume = peekAuthNext() || nextFromUrl;
+          navigate(`/check-email?next=${encodeURIComponent(resume)}`, { replace: true });
           return;
         }
         toast({ title: "Account ready" });
@@ -39,7 +48,8 @@ export default function AuthPage() {
         await signIn(email, password);
         toast({ title: "Welcome back" });
       }
-      navigate(next, { replace: true });
+      const dest = consumeAuthNext(nextFromUrl);
+      navigate(dest, { replace: true });
     } catch (err) {
       toast({
         title: "Authentication failed",
@@ -70,7 +80,7 @@ export default function AuthPage() {
       <div className="max-w-md mx-auto rounded-2xl border border-border bg-card p-8 shadow-card">
         <h1 className="text-2xl font-bold text-center mb-1">{mode === "signin" ? "Sign in" : "Create account"}</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">
-          {mode === "signin" ? "Welcome back to Social Lanka" : "Start growing with referral rewards"}
+          {mode === "signin" ? "Welcome back to Socioly" : "Start growing with referral rewards"}
         </p>
 
         <div className="flex rounded-lg bg-muted p-1 mb-6">

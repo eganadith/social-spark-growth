@@ -3,27 +3,22 @@ import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
 import { clearPendingReferralCode, getPendingReferralCode } from "@/lib/referralStorage";
 
-async function applyPendingReferral(userId: string): Promise<void> {
+async function applyPendingReferral(): Promise<void> {
   if (!isSupabaseConfigured) return;
   const code = getPendingReferralCode();
   if (!code) return;
 
   const sb = getSupabase();
-  const { data: referrerId, error: refErr } = await sb.rpc("get_profile_id_by_referral_code", { p_code: code });
+  const {
+    data: { session },
+  } = await sb.auth.getSession();
+  if (!session?.user) return;
 
-  const rid = typeof referrerId === "string" ? referrerId : null;
-  if (refErr || !rid || rid === userId) {
-    clearPendingReferralCode();
+  const { error } = await sb.rpc("claim_referral", { p_code: code });
+  if (error) {
+    console.warn("claim_referral:", error.message);
     return;
   }
-
-  const { data: me } = await sb.from("profiles").select("referred_by").eq("id", userId).maybeSingle();
-  if (me?.referred_by) {
-    clearPendingReferralCode();
-    return;
-  }
-
-  await sb.from("profiles").update({ referred_by: rid }).eq("id", userId);
   clearPendingReferralCode();
 }
 
@@ -42,7 +37,7 @@ export function useAuth() {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
-      if (s?.user) void applyPendingReferral(s.user.id);
+      if (s?.user) void applyPendingReferral();
     });
 
     const {
@@ -50,7 +45,7 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) void applyPendingReferral(s.user.id);
+      if (s?.user) void applyPendingReferral();
     });
 
     return () => subscription.unsubscribe();
@@ -60,7 +55,7 @@ export function useAuth() {
     const sb = getSupabase();
     const { data, error } = await sb.auth.signUp({ email, password });
     if (error) throw error;
-    if (data.user) await applyPendingReferral(data.user.id);
+    if (data.session) await applyPendingReferral();
     return data;
   }, []);
 
@@ -68,7 +63,7 @@ export function useAuth() {
     const sb = getSupabase();
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    if (data.user) await applyPendingReferral(data.user.id);
+    if (data.session) await applyPendingReferral();
     return data;
   }, []);
 

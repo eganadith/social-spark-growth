@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Clock, Users, Zap, Heart } from "lucide-react";
 
 const badges = [
-  { icon: Shield, label: "Secure payments" },
+  { icon: Shield, label: "Secure payments via Ziina" },
   { icon: Clock, label: "Fast start" },
   { icon: Users, label: "Real engagement" },
 ];
@@ -37,7 +37,7 @@ export default function HeroSection() {
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-muted-foreground mb-6 backdrop-blur-md"
               >
                 <Zap className="h-4 w-4 text-pink-400" />
-                10,000+ happy users · No password required
+                2,400+ profiles boosted this week · No password required
               </motion.div>
 
               <motion.h1

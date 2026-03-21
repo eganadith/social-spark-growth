@@ -1,8 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 
-/** Mobile-first sticky CTA — min 48px tap target, subtle pulse */
+/** Mobile-first sticky CTA — min 48px tap target, subtle pulse. Hidden on dashboard (page has its own CTAs + referral row). */
 export default function StickyGrowthCta() {
+  const { pathname } = useLocation();
+  if (pathname === "/dashboard") return null;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden pointer-events-none">
       <div className="pointer-events-auto flex justify-center">

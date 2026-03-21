@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,6 +6,8 @@ import type { DbProfile, DbReward, OrderStatus } from "@/types/database";
 import { getAdminOrderTimeRemaining } from "@/lib/adminOrderTime";
 import { BarChart3, DollarSign, Package, ShieldAlert, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ensureSession } from "@/lib/authSession";
 
 type AdminOrder = {
   id: string;
@@ -40,6 +42,9 @@ export default function AdminPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [orderStatusFilter, setOrderStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderDatePreset, setOrderDatePreset] = useState<"all" | "today" | "7d">("all");
   const reduceMotionRef = useRef(
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -55,6 +60,7 @@ export default function AdminPage() {
     setDataLoading(true);
     setError(null);
     try {
+      await ensureSession();
       const sb = getSupabase();
       const [oRes, pRes, rRes, refRes] = await Promise.all([
         sb
@@ -81,6 +87,32 @@ export default function AdminPage() {
       setDataLoading(false);
     }
   }, [user, isAdmin]);
+
+  const filteredOrders = useMemo(() => {
+    let list = orders;
+    if (orderStatusFilter !== "all") {
+      list = list.filter((o) => o.status === orderStatusFilter);
+    }
+    const q = orderSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (o) =>
+          o.tracking_id.toLowerCase().includes(q) ||
+          (o.email?.toLowerCase().includes(q) ?? false) ||
+          o.profile_link.toLowerCase().includes(q) ||
+          o.user_id.toLowerCase().includes(q),
+      );
+    }
+    if (orderDatePreset !== "all") {
+      const nowMs = Date.now();
+      const start =
+        orderDatePreset === "today"
+          ? new Date(new Date().toDateString()).getTime()
+          : nowMs - 7 * 24 * 60 * 60 * 1000;
+      list = list.filter((o) => new Date(o.created_at).getTime() >= start);
+    }
+    return list;
+  }, [orders, orderStatusFilter, orderSearch, orderDatePreset]);
 
   useEffect(() => {
     void load();
@@ -184,13 +216,43 @@ export default function AdminPage() {
         </div>
 
         <section className="rounded-xl bg-card border border-border shadow-card overflow-hidden mb-8 opacity-0 animate-fade-in-up">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border space-y-3">
             <h2 className="font-semibold">Orders</h2>
+            <div className="flex flex-wrap gap-2 items-center">
+              <Input
+                placeholder="Search email, tracking ID, profile URL…"
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="max-w-xs h-9 text-sm"
+              />
+              <select
+                value={orderStatusFilter}
+                onChange={(e) => setOrderStatusFilter(e.target.value as "all" | OrderStatus)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+              </select>
+              <select
+                value={orderDatePreset}
+                onChange={(e) => setOrderDatePreset(e.target.value as "all" | "today" | "7d")}
+                className="h-9 rounded-md border border-input bg-background px-2 text-xs"
+              >
+                <option value="all">Any date</option>
+                <option value="today">Today</option>
+                <option value="7d">Last 7 days</option>
+              </select>
+            </div>
           </div>
           {dataLoading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">Loading…</div>
           ) : orders.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No orders</div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No orders match filters</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -201,11 +263,13 @@ export default function AdminPage() {
                       "Profile link",
                       "Ordered at",
                       "Time remaining",
+                      "Progress",
                       "User",
                       "Platform",
                       "Package",
                       "AED",
                       "Status",
+                      "Quick actions",
                     ].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">
                         {h}
@@ -214,9 +278,11 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => (
+                  {filteredOrders.map((o) => (
                     <tr key={o.id} className="border-t border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{o.tracking_id}</td>
+                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap max-w-[120px] truncate" title={o.tracking_id}>
+                        {o.tracking_id}
+                      </td>
                       <td className="px-4 py-3 max-w-[200px]">
                         {o.profile_link?.trim() ? (
                           <a
@@ -238,6 +304,7 @@ export default function AdminPage() {
                       <td className="px-4 py-3 font-mono text-xs whitespace-nowrap tabular-nums">
                         {getAdminOrderTimeRemaining(o.created_at, o.status, now)}
                       </td>
+                      <td className="px-4 py-3 tabular-nums text-xs">{o.progress}%</td>
                       <td className="px-4 py-3 truncate max-w-[140px]">{o.email ?? o.user_id.slice(0, 8)}</td>
                       <td className="px-4 py-3 capitalize">{o.package?.platform}</td>
                       <td className="px-4 py-3">{o.package?.name}</td>
@@ -253,6 +320,28 @@ export default function AdminPage() {
                           <option value="processing">Processing</option>
                           <option value="completed">Completed</option>
                         </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 text-[10px] px-2"
+                            onClick={() => void handleOrderStatus(o.id, "processing")}
+                          >
+                            Processing
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-7 text-[10px] px-2"
+                            onClick={() => void handleOrderStatus(o.id, "completed")}
+                          >
+                            Completed
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

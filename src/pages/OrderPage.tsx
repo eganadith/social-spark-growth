@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useNavigate, Navigate, Link } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,9 @@ import type { Platform } from "@/types/database";
 import { Check, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
+import { ensureSession } from "@/lib/authSession";
+import { persistAuthNext } from "@/lib/authRedirect";
+import { savePendingOrderDraft, loadPendingOrderDraft, clearPendingOrderDraft } from "@/lib/orderDraft";
 
 function isUuidParam(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -47,6 +50,7 @@ async function edgeFunctionErrorDetail(response: Response | undefined, fallback:
 }
 
 const devLocalCheckout = import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
+const prodDevCheckoutForbidden = import.meta.env.PROD && devLocalCheckout;
 
 function supabaseProjectRefHint(): string {
   try {
@@ -77,6 +81,7 @@ export default function OrderPage() {
   const [processing, setProcessing] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [termsError, setTermsError] = useState("");
+  const payIdempotencyRef = useRef<string | null>(null);
 
   const { data: packages = [], isLoading: pkgLoading } = usePackages(platform);
 
@@ -120,19 +125,37 @@ export default function OrderPage() {
     if (user?.email) setEmail((prev) => prev || user.email || "");
   }, [user?.email]);
 
+  useEffect(() => {
+    if (!user && step === 2) {
+      setStep(1);
+      setTermsAgreed(false);
+    }
+  }, [user, step]);
+
+  useEffect(() => {
+    if (!user || !isConfigured) return;
+    if (preselected) {
+      clearPendingOrderDraft();
+      return;
+    }
+    const d = loadPendingOrderDraft();
+    if (!d) return;
+    if (d.platform) setPlatform(d.platform);
+    setProfileLink(d.profileLink);
+    setEmail(d.email);
+    setSelectedPkg(d.selectedPkg);
+    setStep(d.step);
+    setTermsAgreed(d.termsAgreed);
+    clearPendingOrderDraft();
+  }, [user, isConfigured, preselected]);
+
   const platformMatches = !validation.valid || !platform || validation.platform === platform;
 
-  const canProceedStep1 = Boolean(
-    platform &&
-      profileLink &&
-      validation.valid &&
-      platformMatches &&
-      email &&
-      selectedPkg &&
-      user,
+  const canProceedStep1Guest = Boolean(
+    platform && profileLink && validation.valid && platformMatches && email && selectedPkg,
   );
   const canProceedStep2 = Boolean(user && pkg && termsAgreed);
-  const canProceed = step === 1 ? canProceedStep1 : canProceedStep2;
+  const canProceed = step === 1 ? canProceedStep1Guest : canProceedStep2;
 
   async function handlePay() {
     if (!user || !pkg) return;
@@ -160,6 +183,7 @@ export default function OrderPage() {
           email: email.trim() || user.email || null,
         });
         if (insErr) throw new Error(insErr.message);
+        clearPendingOrderDraft();
         toast({
           title: "Demo checkout",
           description: "Order saved (no Edge Function). Complete payment in production with create-payment deployed.",
@@ -168,11 +192,15 @@ export default function OrderPage() {
         return;
       }
 
+      await ensureSession();
       const { data: refreshed } = await sb.auth.refreshSession();
       const accessToken = refreshed.session?.access_token;
       if (!accessToken) {
         throw new Error("Your session expired. Please sign in again and retry payment.");
       }
+
+      if (!payIdempotencyRef.current) payIdempotencyRef.current = crypto.randomUUID();
+      const idempotency_key = payIdempotencyRef.current;
 
       const { data, error, response: fnResponse } = await sb.functions.invoke<{
         checkoutUrl?: string;
@@ -183,6 +211,7 @@ export default function OrderPage() {
           package_id: pkg.id,
           profile_link: profileLink.trim(),
           email: email.trim(),
+          idempotency_key,
         },
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -193,6 +222,7 @@ export default function OrderPage() {
       }
       if (data?.error) throw new Error(data.error);
       if (data?.checkoutUrl) {
+        clearPendingOrderDraft();
         window.location.href = data.checkoutUrl;
         return;
       }
@@ -220,6 +250,29 @@ export default function OrderPage() {
 
   function handleSubmit() {
     if (step === 1) {
+      if (!canProceedStep1Guest) {
+        toast({
+          title: "Complete the form",
+          description: "Select platform, package, profile link, and email to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!user) {
+        const next = `/order${params.toString() ? `?${params.toString()}` : ""}`;
+        savePendingOrderDraft({
+          platform,
+          profileLink,
+          email,
+          selectedPkg,
+          step: 2,
+          termsAgreed: false,
+        });
+        persistAuthNext(next);
+        navigate(`/auth?next=${encodeURIComponent(next)}`);
+        return;
+      }
+      payIdempotencyRef.current = null;
       setStep(2);
       setTermsError("");
       return;
@@ -250,9 +303,17 @@ export default function OrderPage() {
     );
   }
 
-  if (!authLoading && !user) {
-    const next = `/order${params.toString() ? `?${params.toString()}` : ""}`;
-    return <Navigate to={`/auth?next=${encodeURIComponent(next)}`} replace />;
+  if (prodDevCheckoutForbidden) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 px-4">
+        <div className="max-w-xl mx-auto rounded-2xl border border-destructive/50 bg-destructive/10 p-8 text-center">
+          <h1 className="text-xl font-bold mb-2 text-destructive">Configuration error</h1>
+          <p className="text-sm text-muted-foreground">
+            <code className="text-xs">VITE_DEV_LOCAL_CHECKOUT</code> must not be enabled in production builds.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -479,7 +540,15 @@ export default function OrderPage() {
 
           <div className="mt-6 flex gap-3">
             {step === 2 && (
-              <Button variant="outline" type="button" onClick={() => setStep(1)} className="flex-1">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  payIdempotencyRef.current = null;
+                  setStep(1);
+                }}
+                className="flex-1"
+              >
                 Back
               </Button>
             )}
@@ -490,7 +559,7 @@ export default function OrderPage() {
                   Redirecting…
                 </span>
               ) : step === 1 ? (
-                "Continue to payment"
+                user ? "Continue to payment" : "Sign in to continue"
               ) : (
                 `Pay ${pkg?.price ?? ""} AED`
               )}

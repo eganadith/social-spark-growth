@@ -67,7 +67,6 @@ export default function TrackPage() {
 
   return (
     <div className="relative min-h-[100dvh]">
-      {/* Full-viewport background */}
       <div className="fixed inset-0 z-0" aria-hidden>
         <img
           src={TRACK_PAGE_BG}
@@ -77,19 +76,17 @@ export default function TrackPage() {
           height={1080}
           decoding="async"
         />
-        {/* Readability: vignette + slight blur */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90 backdrop-blur-[1px]" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
       </div>
 
       <div className="relative z-10 flex min-h-[100dvh] flex-col px-4 pb-20 pt-24 md:pb-16 md:pt-28">
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
-          {/* Glass card */}
           <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)] backdrop-blur-2xl ring-1 ring-white/10 md:p-8 supports-[backdrop-filter]:bg-white/[0.06]">
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Track your order</h1>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                Enter your tracking ID — delivery updates appear here in real time.
+                Enter your tracking ID from your confirmation email or receipt.
               </p>
               {mock && (
                 <p className="mt-3 text-xs text-amber-400/90">
@@ -112,7 +109,7 @@ export default function TrackPage() {
                   value={trackingId}
                   onChange={(e) => setTrackingId(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="e.g. SL-ABC123"
+                  placeholder="Paste tracking ID"
                   className="min-h-11 w-full bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
                 />
               </div>
@@ -140,7 +137,7 @@ export default function TrackPage() {
                 <div className="text-center py-1">
                   <config.icon className={`mx-auto mb-3 h-12 w-12 ${config.color}`} />
                   <div className={`text-lg font-bold ${config.color}`}>{config.label}</div>
-                  <div className="mt-1 font-mono text-xs text-muted-foreground">{order.tracking_id}</div>
+                  <div className="mt-1 font-mono text-xs text-muted-foreground break-all px-2">{order.tracking_id}</div>
                 </div>
 
                 <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -150,21 +147,16 @@ export default function TrackPage() {
                   />
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm">
-                  {[
-                    { label: "Platform", value: order.platform },
-                    { label: "Package", value: order.package_name ?? "—" },
-                    { label: "Price", value: `${order.amount} AED` },
-                    { label: "Profile", value: order.profile_link },
-                    { label: "Ordered", value: new Date(order.created_at).toLocaleDateString() },
-                  ].map((row) => (
-                    <div key={row.label} className="flex justify-between gap-4 text-sm">
-                      <span className="shrink-0 text-muted-foreground">{row.label}</span>
-                      <span className="min-w-0 truncate text-right font-medium capitalize text-foreground">
-                        {row.value}
-                      </span>
-                    </div>
-                  ))}
+                <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm text-sm">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Last update</span>
+                    <span className="text-right font-medium text-foreground">
+                      {new Date(order.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed pt-1 border-t border-white/10">
+                    Package and profile details are available in your account dashboard after you sign in.
+                  </p>
                 </div>
               </div>
             )}

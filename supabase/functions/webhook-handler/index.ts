@@ -28,6 +28,19 @@ function progressForStatus(st: "pending" | "paid" | "processing" | "completed"):
   return 100;
 }
 
+const STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  processing: 1,
+  paid: 2,
+  completed: 3,
+};
+
+function wouldDowngrade(current: string, next: string): boolean {
+  const a = STATUS_RANK[current] ?? 0;
+  const b = STATUS_RANK[next] ?? 0;
+  return b < a;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -35,6 +48,14 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  }
+
+  if (!Deno.env.get("ZIINA_WEBHOOK_SECRET")?.trim()) {
+    console.error("ZIINA_WEBHOOK_SECRET is not configured; refusing webhook requests");
+    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const rawBody = await req.text();
@@ -83,6 +104,12 @@ Deno.serve(async (req) => {
 
   if (existing.payment_id === piId && existing.status === mapped) {
     return new Response(JSON.stringify({ ok: true, duplicate: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (wouldDowngrade(existing.status, mapped)) {
+    return new Response(JSON.stringify({ ok: true, skipped: "no_downgrade" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

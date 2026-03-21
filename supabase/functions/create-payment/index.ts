@@ -35,17 +35,61 @@ Deno.serve(async (req) => {
       package_id?: string;
       profile_link?: string;
       email?: string;
+      idempotency_key?: string;
     };
     const packageId = body.package_id?.trim();
     const profileLink = body.profile_link?.trim();
+    const idempotencyKey = body.idempotency_key?.trim();
     if (!packageId || !profileLink) {
       return new Response(JSON.stringify({ error: "package_id and profile_link required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (!idempotencyKey || idempotencyKey.length < 8) {
+      return new Response(JSON.stringify({ error: "idempotency_key required (stable per checkout attempt)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const admin = supabaseAdmin();
+
+    const { data: existing, error: existErr } = await admin
+      .from("orders")
+      .select("id, tracking_id, payment_id, checkout_redirect_url, status")
+      .eq("idempotency_key", idempotencyKey)
+      .maybeSingle();
+
+    if (existErr) {
+      console.error(existErr);
+      return new Response(JSON.stringify({ error: "Could not verify checkout" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (existing) {
+      if (existing.status !== "pending") {
+        return new Response(
+          JSON.stringify({ error: "This checkout was already used. Start a new order for another purchase." }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (existing.checkout_redirect_url) {
+        return new Response(
+          JSON.stringify({
+            checkoutUrl: existing.checkout_redirect_url,
+            trackingId: existing.tracking_id,
+            orderId: existing.id,
+            paymentIntentId: existing.payment_id,
+            idempotent: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const { data: pkg, error: pkgErr } = await admin
       .from("packages")
       .select("id, price")
@@ -59,30 +103,80 @@ Deno.serve(async (req) => {
       });
     }
 
-    const trackingId = `SL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
     const site = (Deno.env.get("PUBLIC_SITE_URL") ?? "http://localhost:5173").replace(/\/$/, "");
 
-    const { data: order, error: orderErr } = await admin
-      .from("orders")
-      .insert({
-        user_id: user.id,
-        package_id: packageId,
-        amount: pkg.price,
-        status: "pending",
-        progress: 5,
-        tracking_id: trackingId,
-        profile_link: profileLink,
-        email: body.email?.trim() || user.email || null,
-      })
-      .select("id")
-      .single();
+    let orderId: string;
+    let trackingId: string;
 
-    if (orderErr || !order) {
-      console.error(orderErr);
-      return new Response(JSON.stringify({ error: "Could not create order" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (existing && existing.status === "pending") {
+      orderId = existing.id;
+      trackingId = existing.tracking_id || crypto.randomUUID();
+      const { error: updOrd } = await admin
+        .from("orders")
+        .update({
+          package_id: packageId,
+          amount: pkg.price,
+          profile_link: profileLink,
+          email: body.email?.trim() || user.email || null,
+          tracking_id: trackingId,
+        })
+        .eq("id", existing.id);
+      if (updOrd) {
+        console.error(updOrd);
+        return new Response(JSON.stringify({ error: "Could not update order" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      trackingId = crypto.randomUUID();
+      const { data: order, error: orderErr } = await admin
+        .from("orders")
+        .insert({
+          user_id: user.id,
+          package_id: packageId,
+          amount: pkg.price,
+          status: "pending",
+          progress: 5,
+          tracking_id: trackingId,
+          profile_link: profileLink,
+          email: body.email?.trim() || user.email || null,
+          idempotency_key: idempotencyKey,
+        })
+        .select("id")
+        .single();
+
+      if (orderErr || !order) {
+        if (orderErr?.code === "23505") {
+          const { data: raced } = await admin
+            .from("orders")
+            .select("id, tracking_id, payment_id, checkout_redirect_url, status")
+            .eq("idempotency_key", idempotencyKey)
+            .maybeSingle();
+          if (raced?.checkout_redirect_url && raced.status === "pending") {
+            return new Response(
+              JSON.stringify({
+                checkoutUrl: raced.checkout_redirect_url,
+                trackingId: raced.tracking_id,
+                orderId: raced.id,
+                paymentIntentId: raced.payment_id,
+                idempotent: true,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          return new Response(JSON.stringify({ error: "Duplicate checkout in progress; retry shortly." }), {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        console.error(orderErr);
+        return new Response(JSON.stringify({ error: "Could not create order" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      orderId = order.id;
     }
 
     const successUrl = `${site}/track?id=${encodeURIComponent(trackingId)}`;
@@ -90,7 +184,7 @@ Deno.serve(async (req) => {
     const failureUrl = `${site}/order?payment=failed`;
 
     const ziina = await createZiinaPaymentIntent({
-      orderId: order.id,
+      orderId,
       userId: user.id,
       packageId,
       amount: Number(pkg.price),
@@ -101,20 +195,23 @@ Deno.serve(async (req) => {
       failureUrl,
     });
 
-    const { error: payIdErr } = await admin
+    const { error: payUpdErr } = await admin
       .from("orders")
-      .update({ payment_id: ziina.paymentIntentId })
-      .eq("id", order.id);
+      .update({
+        payment_id: ziina.paymentIntentId,
+        checkout_redirect_url: ziina.redirectUrl,
+      })
+      .eq("id", orderId);
 
-    if (payIdErr) {
-      console.error("Could not store Ziina payment_intent id on order", payIdErr);
+    if (payUpdErr) {
+      console.error("Could not store payment intent / checkout URL on order", payUpdErr);
     }
 
     return new Response(
       JSON.stringify({
         checkoutUrl: ziina.redirectUrl,
         trackingId,
-        orderId: order.id,
+        orderId,
         paymentIntentId: ziina.paymentIntentId,
       }),
       {

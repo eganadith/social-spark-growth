@@ -24,18 +24,15 @@ export type DbOrderRow = {
   profile_link: string;
   email: string | null;
   created_at: string;
+  idempotency_key?: string | null;
+  checkout_redirect_url?: string | null;
 };
 
+/** Public track RPC returns only non-sensitive fields (see migration `get_order_by_tracking`). */
 export type TrackOrderPayload = {
-  id: string;
   tracking_id: string;
   status: OrderStatus;
   progress: number;
-  platform: Platform;
-  package_name: string | null;
-  followers: number | null;
-  amount: number;
-  profile_link: string;
   created_at: string;
 };
 

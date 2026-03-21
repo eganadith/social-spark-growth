@@ -28,7 +28,7 @@ npx supabase secrets set \
 
 `PUBLIC_SITE_URL` must include **`https://`** and have **no trailing slash** (e.g. `https://lovely-belekoy-6e5306.netlify.app`).
 
-For webhooks, also set `ZIINA_WEBHOOK_SECRET` and register the webhook (see [`ZIINA.md`](ZIINA.md)).
+**Production:** `webhook-handler` **refuses all requests** if `ZIINA_WEBHOOK_SECRET` is missing — set it and register the webhook (see [`ZIINA.md`](ZIINA.md)). Local experiments still need a secret value for the function to accept POSTs.
 
 Optional for Ziina sandbox:
 

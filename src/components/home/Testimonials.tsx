@@ -4,6 +4,12 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const testimonials = [
   {
+    name: "Leo M. · Lifestyle creator",
+    handle: "480K followers · Dubai",
+    text: "We ran Socioly on a brand collab — clean dashboard, Ziina checkout was instant, and delivery stayed gradual. That is exactly what I pitch to partners.",
+    rating: 5,
+  },
+  {
     name: "Amara Perera",
     handle: "@amaracreates",
     text: "Gained 2,000 real followers in just a week. Delivery was smooth and engagement actually went up.",
@@ -43,7 +49,7 @@ export default function Testimonials() {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
           {testimonials.map((t, i) => (
             <motion.div
               key={t.name}
