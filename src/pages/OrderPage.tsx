@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { findStorePackageById, formatFollowersShort, validateSocialUrl } from "@/lib/store";
 import { usePackages } from "@/hooks/usePackages";
 import { useAuth } from "@/hooks/useAuth";
@@ -499,19 +498,22 @@ export default function OrderPage() {
                   className="mt-0.5"
                   aria-invalid={Boolean(termsError)}
                 />
-                <Label htmlFor="order-terms" className="text-sm font-normal leading-relaxed cursor-pointer text-muted-foreground">
-                  I agree to the{" "}
+                {/* Do not wrap the Link in a single <label>: clicks hit the checkbox instead of navigating. */}
+                <p className="text-sm font-normal leading-relaxed text-muted-foreground">
+                  <label htmlFor="order-terms" className="cursor-pointer">
+                    I agree to the{" "}
+                  </label>
                   <Link
                     to="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="text-primary font-medium hover:underline"
                     onClick={(e) => e.stopPropagation()}
                   >
                     Terms &amp; Conditions
                   </Link>
-                  . By continuing, I confirm that I understand the service and agree to pay for the selected package.
-                </Label>
+                  <label htmlFor="order-terms" className="cursor-pointer">
+                    . By continuing, I confirm that I understand the service and agree to pay for the selected package.
+                  </label>
+                </p>
               </div>
               {termsError ? <p className="text-sm text-destructive">{termsError}</p> : null}
             </div>
