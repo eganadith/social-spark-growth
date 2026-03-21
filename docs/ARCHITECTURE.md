@@ -37,7 +37,7 @@ Conceptual architecture for the **Socioly** app (frontend, Supabase backend, Zii
 #### Order (`/order`)
 
 - **Current:** Platform + package selection, `package_id` / legacy `pkg` preselection from query string, **profile URL** validated via `validateSocialUrl` (`src/lib/store.ts`), **email** required for checkout step, auth gate → `/auth?next=…`, loading/disabled state during payment, toasts on errors.
-- **create-payment** Edge Function for production checkout; `VITE_DEV_LOCAL_CHECKOUT=true` skips payment (dev only).
+- **create-payment** Edge Function for checkout; `VITE_MOCK_CHECKOUT=true` skips Ziina (dev DB demo only).
 - **Roadmap:** stronger idempotency on double-submit (UI debounce + server-side “single open order per user/package” policy if product requires it). Optional inline field-level errors beyond current validation messaging.
 
 #### Track (`/track`)
@@ -131,7 +131,7 @@ Self-referral and duplicate handling are enforced in app/auth logic where implem
 
 | Layer | Config |
 |--------|--------|
-| **Frontend** | `.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; optional `VITE_DEV_LOCAL_CHECKOUT` |
+| **Frontend** | `.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`; optional `VITE_MOCK_CHECKOUT` (skip Ziina demo) |
 | **Edge Functions** | Supabase secrets: `SUPABASE_SERVICE_ROLE_KEY`, `ZIINA_API_KEY`, `PUBLIC_SITE_URL`, `ZIINA_WEBHOOK_SECRET` (and optional vars per docs) |
 | **Static host** | e.g. Netlify: build `dist/`, set `VITE_*`; see `netlify.toml` for secrets-scan omit on inlined public keys |
 | **Functions** | `npm run functions:deploy` after `supabase link` |

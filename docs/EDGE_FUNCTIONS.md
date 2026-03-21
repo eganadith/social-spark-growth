@@ -76,4 +76,4 @@ Invoke **create-payment** once from the app; if it still fails, open **Edge Func
 
 ---
 
-**Local dev without deploying:** set `VITE_DEV_LOCAL_CHECKOUT=true` in `.env` (pending order only — not Ziina). See [README](../README.md).
+**Local payment testing:** use real `create-payment` + Ziina; set Edge secret **`PUBLIC_SITE_URL`** to your Vite origin (e.g. `http://localhost:5173`). **DB-only demo (no Ziina):** `VITE_MOCK_CHECKOUT=true` in `.env`. See [README](../README.md).

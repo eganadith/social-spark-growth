@@ -63,4 +63,4 @@ npm run functions:deploy
 
 (`SUPABASE_SERVICE_ROLE_KEY` is **injected by Supabase** on hosted functions — do not set it via `secrets set`; the CLI ignores names starting with `SUPABASE_`.)
 
-See [`docs/EDGE_FUNCTIONS.md`](docs/EDGE_FUNCTIONS.md). For **local UI-only** testing without Ziina, set **`VITE_DEV_LOCAL_CHECKOUT=true`** in `.env` (pending order only — **not** for production).
+See [`docs/EDGE_FUNCTIONS.md`](docs/EDGE_FUNCTIONS.md). **Local Ziina:** leave mock unset; set Edge secret **`PUBLIC_SITE_URL=http://localhost:5173`** (or your Vite port) while testing. For **DB-only** demos without payment, use **`VITE_MOCK_CHECKOUT=true`** in `.env` (dev only, never production).

@@ -65,4 +65,4 @@ See [Ziina webhooks](https://docs.ziina.com/api-reference/webhook/index).
 
 ## Frontend
 
-`VITE_DEV_LOCAL_CHECKOUT=true` bypasses Ziina for **local DB demos only**. **Production** should use real Ziina + deployed functions only.
+`VITE_MOCK_CHECKOUT=true` (dev only) bypasses Ziina for **local DB demos**. **Production** and normal local payment tests use real Ziina + deployed functions.

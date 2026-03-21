@@ -48,8 +48,11 @@ async function edgeFunctionErrorDetail(response: Response | undefined, fallback:
   return response.status ? `[${response.status}] ${fallback}` : fallback;
 }
 
-/** Demo checkout without Ziina — only when running `vite` locally; ignored in production builds even if Netlify sets the var. */
-const devLocalCheckout = import.meta.env.DEV && import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
+/**
+ * Skip Ziina and insert a pending order + redirect to Track — opt-in only (`VITE_MOCK_CHECKOUT=true` while on `vite`).
+ * Default local dev uses real `create-payment` → Ziina so you can debug the payment gateway.
+ */
+const mockCheckoutSkipZiina = import.meta.env.DEV && import.meta.env.VITE_MOCK_CHECKOUT === "true";
 
 function supabaseProjectRefHint(): string {
   try {
@@ -169,7 +172,7 @@ export default function OrderPage() {
     try {
       const sb = getSupabase();
 
-      if (devLocalCheckout) {
+      if (mockCheckoutSkipZiina) {
         const trackingId = `SL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
         const { error: insErr } = await sb.from("orders").insert({
           user_id: user.id,
@@ -222,13 +225,13 @@ export default function OrderPage() {
         /Failed to send a request to the Edge Function|Relay Error invoking the Edge Function/i.test(detail) ||
         /Failed to fetch|network|load failed|ECONNREFUSED|NetworkError/i.test(detail) ||
         /^\[404\]/i.test(detail);
-      const hint = devLocalCheckout
+      const hint = mockCheckoutSkipZiina
         ? ""
         : isAuthError
           ? " This is an auth error (401), not Ziina. Sign out → sign in, then Pay again. On Netlify, VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be from the same Supabase project where create-payment is deployed."
           : isUnreachable
             ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
-            : " Check Ziina: set ZIINA_API_KEY + PUBLIC_SITE_URL on Edge Functions. Dev-only without Ziina: VITE_DEV_LOCAL_CHECKOUT=true.";
+            : " Check Ziina: set ZIINA_API_KEY + PUBLIC_SITE_URL on Edge Functions (use http://localhost:PORT for local payment tests). DB-only demo without Ziina: VITE_MOCK_CHECKOUT=true.";
       toast({
         title: "Payment could not start",
         description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""}${hint}`,
@@ -464,9 +467,9 @@ export default function OrderPage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {devLocalCheckout ? (
+                {mockCheckoutSkipZiina ? (
                   <span className="text-amber-700 dark:text-amber-400">
-                    Dev mode: skipping Ziina — order saved as pending only. Do not use in production.
+                    Mock mode: skipping Ziina — pending order + track only. Unset VITE_MOCK_CHECKOUT to test real checkout.
                   </span>
                 ) : (
                   <>

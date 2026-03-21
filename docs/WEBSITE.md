@@ -68,7 +68,7 @@ Assets live under `public/Images/` where referenced.
 - **Package** can come from the catalog (`package_id` query param) or user selection.  
 - Collects **profile link** (and optional email where the form requires it).  
 - **Production:** calls Edge Function **`create-payment`** with `package_id`, `profile_link`, `email`. Function creates/updates the order and returns a **Ziina checkout URL**; browser redirects there.  
-- **Dev shortcut:** if `VITE_DEV_LOCAL_CHECKOUT=true`, the app skips the Edge Function and creates a **pending** order only (no real payment) — **not for production**.  
+- **Local payment tests:** use `create-payment` → Ziina (set Edge `PUBLIC_SITE_URL` to your Vite origin). **Mock:** if `VITE_MOCK_CHECKOUT=true`, skips Ziina and creates a **pending** order only — **not for production**.  
 - Errors such as “Failed to send a request to the Edge Function” usually mean **`create-payment` is not deployed** or env points at the wrong Supabase project. See [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md).
 
 ---
@@ -171,7 +171,7 @@ Deploy: `npm run functions:deploy` after `supabase link`. Full checklist: [EDGE_
 |----------|----------|---------|
 | `VITE_SUPABASE_URL` | Yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon (public) key |
-| `VITE_DEV_LOCAL_CHECKOUT` | No | `true` = dev-only pending order without Edge Function |
+| `VITE_MOCK_CHECKOUT` | No | `true` = dev-only skip Ziina (pending order + track) |
 
 ### Local / CI helpers (not bundled unless `VITE_` prefixed)
 
@@ -204,7 +204,7 @@ npm run dev
 ```
 
 - Apply migrations and seed as in [README.md](../README.md).  
-- For payment UI without deploying functions: `VITE_DEV_LOCAL_CHECKOUT=true` (local only).  
+- For real payment tests locally: deploy `create-payment`, set `PUBLIC_SITE_URL=http://localhost:5173` (or your port). DB-only: `VITE_MOCK_CHECKOUT=true`.  
 - Lint: `npm run lint`  
 - Tests: `npm run test`  
 - Production build: `npm run build` / `npm run preview`

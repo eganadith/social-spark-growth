@@ -47,7 +47,7 @@ This document is for **validating architecture**: what the app does end-to-end, 
 7. **After Ziina**: user returns to `success_url` / etc. **Order status** updates from **`webhook-handler`**, not from the return URL alone.
 8. **Track** (`/track?id=…`): **public** RPC `get_order_by_tracking` returns a JSON payload (no direct table read for anon).
 
-**Dev shortcut:** `VITE_DEV_LOCAL_CHECKOUT=true` skips the Edge Function and inserts a **pending** order via the client. **Do not enable in production** — no real payment, different threat model.
+**Dev mock (optional):** `VITE_MOCK_CHECKOUT=true` skips Ziina and inserts a **pending** order via the client + track. **Default local dev** uses real `create-payment` → Ziina. **Do not enable mock in production.**
 
 ---
 
@@ -173,7 +173,7 @@ These are **honest architectural gaps** to review — not an exhaustive penetrat
 
 - Non-admins can **open `/admin`** and see the “admin only” message; **data** still must fail RLS (it does, if policies are deployed).
 
-### D. `VITE_DEV_LOCAL_CHECKOUT`
+### D. `VITE_MOCK_CHECKOUT`
 
 - If accidentally enabled in production, users could create **pending** orders without payment. **Treat as dangerous config.**
 
