@@ -8,21 +8,25 @@ and got **no response** — almost always because **`create-payment` is not depl
 
 ```bash
 npx supabase login
-npx supabase link --project-ref YOUR_20_CHAR_REF
+npx supabase link --project-ref abcdefghijklmnop
 ```
 
-(`YOUR_20_CHAR_REF` = subdomain of `VITE_SUPABASE_URL`, or Dashboard → Project Settings → General → Reference ID.)
+Replace `abcdefghijklmnop` with your real **20-character Reference ID** (Dashboard → Project Settings → General).  
+Do **not** leave the literal `YOUR_20_CHAR_REF` from examples.
 
 ## 2. Set secrets (required for Ziina checkout)
 
+Hosted Edge Functions **already receive** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and **`SUPABASE_SERVICE_ROLE_KEY`** from Supabase — the CLI **will skip** any secret whose name starts with `SUPABASE_`, so **do not** pass `SUPABASE_SERVICE_ROLE_KEY` in `secrets set`.
+
+Set only what the app adds on top:
+
 ```bash
 npx supabase secrets set \
-  SUPABASE_SERVICE_ROLE_KEY="paste-service-role-key" \
-  PUBLIC_SITE_URL="http://localhost:5173" \
+  PUBLIC_SITE_URL="https://your-site.netlify.app" \
   ZIINA_API_KEY="paste-ziina-bearer-token"
 ```
 
-Use your **production** `PUBLIC_SITE_URL` when you deploy the site (no trailing slash).
+`PUBLIC_SITE_URL` must include **`https://`** and have **no trailing slash** (e.g. `https://lovely-belekoy-6e5306.netlify.app`).
 
 For webhooks, also set `ZIINA_WEBHOOK_SECRET` and register the webhook (see [`ZIINA.md`](ZIINA.md)).
 

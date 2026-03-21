@@ -14,9 +14,7 @@ sql_paths = ["./seed/seed_packages.sql"]
 [api]
 enabled = true
 
-[functions]
-verify_jwt = true
-
+# Per-function JWT verification (CLI v1.200+ — do not set a bare `[functions] verify_jwt = bool`; it breaks deploy).
 [functions.create-payment]
 verify_jwt = true
 

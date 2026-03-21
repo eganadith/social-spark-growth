@@ -54,9 +54,11 @@ The browser must reach **`/functions/v1/create-payment`** on the **same** Supaba
 
 ```bash
 npx supabase login
-npx supabase link --project-ref YOUR_20_CHAR_REF   # matches your Supabase URL
-npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="…" PUBLIC_SITE_URL="https://your-site.com" ZIINA_API_KEY="…"
+npx supabase link --project-ref YOUR_20_CHAR_REF   # real 20-char ref from Dashboard (not the placeholder text)
+npx supabase secrets set PUBLIC_SITE_URL="https://your-site.com" ZIINA_API_KEY="…"
 npm run functions:deploy
 ```
+
+(`SUPABASE_SERVICE_ROLE_KEY` is **injected by Supabase** on hosted functions — do not set it via `secrets set`; the CLI ignores names starting with `SUPABASE_`.)
 
 See [`docs/EDGE_FUNCTIONS.md`](docs/EDGE_FUNCTIONS.md). For **local UI-only** testing without Ziina, set **`VITE_DEV_LOCAL_CHECKOUT=true`** in `.env` (pending order only — **not** for production).
