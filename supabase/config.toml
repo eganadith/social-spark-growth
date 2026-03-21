@@ -5,7 +5,7 @@
 #   npx supabase link --project-ref <paste-reference-id-here>
 # (Dashboard → Project Settings → General → Reference ID)
 
-project_id = ""
+project_id = "pecwhbsaxfikglxppcyc"
 
 [db.seed]
 enabled = true
