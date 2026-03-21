@@ -2,8 +2,7 @@
   command = "bun run build"
   publish = "dist"
 
-# Vite inlines VITE_* into the client bundle (Supabase URL + anon key are public by design).
-# Do not put SECRETS_SCAN_OMIT_KEYS in this file — Netlify fails the build if that env value appears in the repo.
-# In Netlify: Site settings → Environment variables → add:
-#   SECRETS_SCAN_OMIT_KEYS = VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY
-# Never add SUPABASE_SERVICE_ROLE_KEY or ZIINA_API_KEY to Netlify site env for this SPA (not used at build time).
+# Vite embeds public env vars into JS under dist/. Skip that output in Netlify’s secrets scan.
+# Never paste the same string as site env SECRETS_SCAN_OMIT_KEYS into this file (build will fail).
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "dist/**"
