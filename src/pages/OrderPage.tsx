@@ -11,7 +11,7 @@ import type { Platform } from "@/types/database";
 import { Check, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
-import { ensureSession } from "@/lib/authSession";
+import { invokeEdgeFunction } from "@/lib/supabaseInvoke";
 import { persistAuthNext } from "@/lib/authRedirect";
 import { savePendingOrderDraft, loadPendingOrderDraft, clearPendingOrderDraft } from "@/lib/orderDraft";
 
@@ -192,38 +192,18 @@ export default function OrderPage() {
         return;
       }
 
-      await ensureSession();
-      const { data: refData, error: refErr } = await sb.auth.refreshSession();
-      let accessToken = refData.session?.access_token;
-      if (!accessToken) {
-        const { data: snap } = await sb.auth.getSession();
-        accessToken = snap.session?.access_token ?? undefined;
-      }
-      if (!accessToken) {
-        throw new Error(
-          refErr?.message
-            ? `Session could not be refreshed (${refErr.message}). Sign out and sign in again.`
-            : "Your session expired. Please sign in again and retry payment.",
-        );
-      }
-
       if (!payIdempotencyRef.current) payIdempotencyRef.current = crypto.randomUUID();
       const idempotency_key = payIdempotencyRef.current;
 
-      const { data, error, response: fnResponse } = await sb.functions.invoke<{
+      const { data, error, response: fnResponse } = await invokeEdgeFunction<{
         checkoutUrl?: string;
         trackingId?: string;
         error?: string;
       }>("create-payment", {
-        body: {
-          package_id: pkg.id,
-          profile_link: profileLink.trim(),
-          email: email.trim(),
-          idempotency_key,
-        },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        package_id: pkg.id,
+        profile_link: profileLink.trim(),
+        email: email.trim(),
+        idempotency_key,
       });
       if (error) {
         throw new Error(await edgeFunctionErrorDetail(fnResponse, formatPayError(error)));
@@ -246,7 +226,7 @@ export default function OrderPage() {
       const hint = devLocalCheckout
         ? ""
         : isAuthError
-          ? " This is an auth error (401), not Ziina. Sign out → sign in, then Pay again. Confirm VITE_SUPABASE_URL matches the project where create-payment is deployed."
+          ? " This is an auth error (401), not Ziina. Sign out → sign in, then Pay again. On Netlify, VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be from the same Supabase project where create-payment is deployed."
           : isUnreachable
             ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
             : " Check Ziina: set ZIINA_API_KEY + PUBLIC_SITE_URL on Edge Functions. Dev-only without Ziina: VITE_DEV_LOCAL_CHECKOUT=true.";

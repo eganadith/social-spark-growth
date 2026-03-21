@@ -3,8 +3,8 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { ensureSession } from "@/lib/authSession";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { invokeEdgeFunction } from "@/lib/supabaseInvoke";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 
 const POLL_MS = 20_000;
 
@@ -37,10 +37,8 @@ export default function PaymentSuccessPage() {
 
     async function tick() {
       try {
-        await ensureSession();
-        const sb = getSupabase();
-        const { data, error, response } = await sb.functions.invoke<CheckPayload>("check-payment-once", {
-          body: { order_id: orderId },
+        const { data, error, response } = await invokeEdgeFunction<CheckPayload>("check-payment-once", {
+          order_id: orderId,
         });
         if (cancelled) return;
         if (error) {
