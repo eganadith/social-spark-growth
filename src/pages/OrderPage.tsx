@@ -28,6 +28,24 @@ function formatPayError(e: unknown): string {
   }
 }
 
+/** Non-2xx invoke responses leave `data` null; the JSON error is on `response` (see @supabase/functions-js). */
+async function edgeFunctionErrorDetail(response: Response | undefined, fallback: string): Promise<string> {
+  if (!response || response.ok) return fallback;
+  try {
+    const ct = (response.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
+    if (ct === "application/json") {
+      const j = (await response.clone().json()) as { error?: unknown };
+      if (typeof j.error === "string" && j.error.trim()) return j.error.trim();
+    } else {
+      const t = (await response.clone().text()).trim();
+      if (t) return t.slice(0, 400);
+    }
+  } catch {
+    /* ignore */
+  }
+  return response.status ? `[${response.status}] ${fallback}` : fallback;
+}
+
 const devLocalCheckout = import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
 
 function supabaseProjectRefHint(): string {
@@ -156,20 +174,23 @@ export default function OrderPage() {
         throw new Error("Your session expired. Please sign in again and retry payment.");
       }
 
-      const { data, error } = await sb.functions.invoke<{ checkoutUrl?: string; trackingId?: string; error?: string }>(
-        "create-payment",
-        {
-          body: {
-            package_id: pkg.id,
-            profile_link: profileLink.trim(),
-            email: email.trim(),
-          },
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+      const { data, error, response: fnResponse } = await sb.functions.invoke<{
+        checkoutUrl?: string;
+        trackingId?: string;
+        error?: string;
+      }>("create-payment", {
+        body: {
+          package_id: pkg.id,
+          profile_link: profileLink.trim(),
+          email: email.trim(),
         },
-      );
-      if (error) throw error;
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (error) {
+        throw new Error(await edgeFunctionErrorDetail(fnResponse, formatPayError(error)));
+      }
       if (data?.error) throw new Error(data.error);
       if (data?.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -179,8 +200,9 @@ export default function OrderPage() {
     } catch (e) {
       const detail = formatPayError(e);
       const isUnreachable =
-        /failed to send|fetch|network|load failed|edge function/i.test(detail) ||
-        /non-2xx|404|not found/i.test(detail);
+        /Failed to send a request to the Edge Function|Relay Error invoking the Edge Function/i.test(detail) ||
+        /Failed to fetch|network|load failed|ECONNREFUSED|NetworkError/i.test(detail) ||
+        /^\[404\]/i.test(detail);
       const hint = devLocalCheckout
         ? ""
         : isUnreachable

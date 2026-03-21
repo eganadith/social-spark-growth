@@ -38,12 +38,13 @@ Links like `http://localhost:8081/?ref=43B611E7` are fine: the app stores `ref` 
 
 | Secret | Purpose |
 |--------|---------|
-| `ZIINA_API_KEY` | Bearer token from [Ziina Connect / API](https://ziina.com/business/connect) (`write_payment_intents`) |
+| `ZIINA_API_KEY` | Bearer token from [Ziina Connect / API](https://ziina.com/business/connect) (`write_payment_intents`); sent as `Authorization: Bearer <API Key>` on every Ziina request |
 | `ZIINA_WEBHOOK_SECRET` | Same string you pass as `secret` when registering the webhook with Ziina |
 | `PUBLIC_SITE_URL` | Site origin for success/cancel URLs (no trailing slash) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role (create-payment + webhook) |
 | `ZIINA_API_BASE` | Optional; default `https://api-v2.ziina.com/api` |
-| `ZIINA_TEST` | Optional; set `true` for test payment intents |
+| `ZIINA_TEST` | Optional; `true` → Ziina creates a **test** Payment Intent (any card / expiry / CVV; no charge) |
+
+**Hosted Supabase:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and **`SUPABASE_SERVICE_ROLE_KEY`** are **injected** for Edge Functions. The CLI **skips** `supabase secrets set` for names starting with `SUPABASE_`, so do not try to set the service role that way — see [`EDGE_FUNCTIONS.md`](EDGE_FUNCTIONS.md).
 
 ## Register the webhook with Ziina
 

@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "db:seed": "node scripts/supabase-seed-packages.mjs",
     "db:seed:local": "npx supabase db query --file supabase/seed/seed_packages.sql --local",
-    "functions:deploy": "npx supabase functions deploy create-payment && npx supabase functions deploy webhook-handler"
+    "functions:deploy": "npx supabase functions deploy create-payment --use-api && npx supabase functions deploy webhook-handler --use-api"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
