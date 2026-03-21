@@ -19,13 +19,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearer = authHeader.match(/^Bearer\s+(\S+)/i)?.[1]?.trim();
+    if (!bearer) {
+      return new Response(JSON.stringify({ error: "Missing bearer token. Sign in again, then retry payment." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = supabaseUser(req);
     const {
       data: { user },
       error: userErr,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(bearer);
     if (userErr || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      const msg =
+        userErr?.message?.toLowerCase().includes("jwt") ||
+        userErr?.message?.toLowerCase().includes("expired") ||
+        userErr?.message?.toLowerCase().includes("invalid")
+          ? "Session expired or invalid. Sign out, sign in again, then retry payment."
+          : (userErr?.message ?? "Unauthorized");
+      return new Response(JSON.stringify({ error: msg }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -92,7 +107,7 @@ Deno.serve(async (req) => {
 
     const { data: pkg, error: pkgErr } = await admin
       .from("packages")
-      .select("id, price")
+      .select("id, price, platform")
       .eq("id", packageId)
       .single();
 
@@ -119,6 +134,7 @@ Deno.serve(async (req) => {
           profile_link: profileLink,
           email: body.email?.trim() || user.email || null,
           tracking_id: trackingId,
+          service_type: pkg.platform,
         })
         .eq("id", existing.id);
       if (updOrd) {
@@ -142,6 +158,7 @@ Deno.serve(async (req) => {
           profile_link: profileLink,
           email: body.email?.trim() || user.email || null,
           idempotency_key: idempotencyKey,
+          service_type: pkg.platform,
         })
         .select("id")
         .single();
@@ -179,9 +196,9 @@ Deno.serve(async (req) => {
       orderId = order.id;
     }
 
-    const successUrl = `${site}/track?id=${encodeURIComponent(trackingId)}`;
-    const cancelUrl = `${site}/order`;
-    const failureUrl = `${site}/order?payment=failed`;
+    const successUrl = `${site}/payment-success?order_id=${encodeURIComponent(orderId)}&tracking=${encodeURIComponent(trackingId)}`;
+    const cancelUrl = `${site}/payment-failed?reason=cancel`;
+    const failureUrl = `${site}/payment-failed?reason=failed`;
 
     const ziina = await createZiinaPaymentIntent({
       orderId,
@@ -205,6 +222,17 @@ Deno.serve(async (req) => {
 
     if (payUpdErr) {
       console.error("Could not store payment intent / checkout URL on order", payUpdErr);
+    }
+
+    await admin.from("payments").update({ status: "failed" }).eq("order_id", orderId).eq("status", "pending");
+
+    const { error: insPayErr } = await admin.from("payments").insert({
+      order_id: orderId,
+      payment_id: ziina.paymentIntentId,
+      status: "pending",
+    });
+    if (insPayErr) {
+      console.error("Could not insert payments row", insPayErr);
     }
 
     return new Response(

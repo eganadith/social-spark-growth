@@ -14,7 +14,7 @@ Checkout uses [Ziina’s Payment Intent API](https://docs.ziina.com/api-referenc
 | **Amount in fils** (100 AED = `10000`; min **2 AED**) | `amount` = package price × 100; rejected if &lt; 200 fils for AED |
 | **`success_url`** / **`cancel_url`** | Built from **`PUBLIC_SITE_URL`** (also **`failure_url`**) |
 | Response **`redirect_url`** → send customer there | Returned to the app as `checkoutUrl`; browser navigates to Ziina |
-| Status via **`GET /payment_intent/{id}`** | Optional; we rely on **webhooks** + Track page |
+| Status via **`GET /payment_intent/{id}`** | **Primary:** Edge **`poll-pending-payments`** + **`check-payment-once`** (no webhook required). Optional webhook still supported. |
 | **Test mode:** `test: true` on create | Set Edge secret **`ZIINA_TEST=true`** — any card / expiry / CVV, no charge |
 | **Auth:** `Authorization: Bearer <API Key>` | **`ZIINA_API_KEY`** secret |
 
@@ -32,23 +32,27 @@ Links like `http://localhost:8081/?ref=43B611E7` are fine: the app stores `ref` 
    - `success_url` / `cancel_url` / `failure_url`
    - `test: true` when secret **`ZIINA_TEST=true`** (no real charge; [test cards](https://docs.ziina.com/test-cards))
 2. Ziina returns `redirect_url` → user pays on Ziina’s page.
-3. **`webhook-handler`** receives `payment_intent.status.updated`, verifies **`X-Hmac-Signature`** (HMAC-SHA256 hex of raw body with your webhook `secret`), then updates `orders` by `payment_id` = Ziina payment intent `id`.
+3. **Verification (no webhook required):** schedule **`poll-pending-payments`** (e.g. every minute via external cron, or as often as every 20s) with header **`x-socioly-poll: <PAYMENTS_POLL_SECRET>`**. The function calls **`GET /payment_intent/{id}`** with retries, updates **`payments`** and **`orders`**, starts the **72h** SLA, and POSTs **`BOOSTING_WEBHOOK_URL`** when configured. The **`/payment-success`** page calls **`check-payment-once`** on a **20s** interval for faster UX.
+4. **Optional:** **`webhook-handler`** can still receive `payment_intent.status.updated` and runs the same sync (requires **`ZIINA_WEBHOOK_SECRET`**).
 
 ## Supabase secrets
 
 | Secret | Purpose |
 |--------|---------|
 | `ZIINA_API_KEY` | Bearer token from [Ziina Connect / API](https://ziina.com/business/connect) (`write_payment_intents`); sent as `Authorization: Bearer <API Key>` on every Ziina request |
-| `ZIINA_WEBHOOK_SECRET` | Same string you pass as `secret` when registering the webhook with Ziina |
+| `ZIINA_WEBHOOK_SECRET` | Optional; same string as Ziina webhook `secret` if you use **`webhook-handler`** |
+| `PAYMENTS_POLL_SECRET` | Shared secret for **`poll-pending-payments`** (header `x-socioly-poll` or `Authorization: Bearer`) |
+| `BOOSTING_WEBHOOK_URL` | Optional; JSON POST when an order moves to paid / processing after Ziina **completed** |
+| `PAYMENT_PENDING_TTL_HOURS` | Optional; default `24` — stale pending rows marked **failed** by the poller |
 | `PUBLIC_SITE_URL` | Site origin for success/cancel URLs (no trailing slash) |
 | `ZIINA_API_BASE` | Optional; default `https://api-v2.ziina.com/api` |
 | `ZIINA_TEST` | Optional; `true` → Ziina creates a **test** Payment Intent (any card / expiry / CVV; no charge) |
 
 **Hosted Supabase:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and **`SUPABASE_SERVICE_ROLE_KEY`** are **injected** for Edge Functions. The CLI **skips** `supabase secrets set` for names starting with `SUPABASE_`, so do not try to set the service role that way — see [`EDGE_FUNCTIONS.md`](EDGE_FUNCTIONS.md).
 
-## Register the webhook with Ziina
+## Register the webhook with Ziina (optional)
 
-Use Ziina’s API (token needs `write_webhooks` scope): `POST /webhook` with body:
+If you want redundant updates alongside polling, use Ziina’s API (token needs `write_webhooks` scope): `POST /webhook` with body:
 
 ```json
 {

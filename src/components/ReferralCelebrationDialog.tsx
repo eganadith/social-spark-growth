@@ -52,8 +52,8 @@ export default function ReferralCelebrationDialog({ open, onOpenChange }: Props)
           </div>
           <DialogTitle className="text-center text-xl">Invite friends & earn FREE likes!</DialogTitle>
           <DialogDescription className="text-center text-sm leading-relaxed">
-            You&apos;re in. Share Socioly — when friends purchase, you unlock bonus like codes (FREE100, FREE500, and
-            more). Open your dashboard to copy your personal referral link.
+            You&apos;re in. Share Socioly — when friends purchase, you unlock bonus like codes (up to 10,000 free likes
+            at milestones). Open your dashboard to copy your personal referral link.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 pt-2">

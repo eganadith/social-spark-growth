@@ -120,7 +120,7 @@ Order + pay
     → Referral / reward rules (thresholds in Edge `_shared/rewards.ts`, mirrored in `src/lib/rewardMilestones.ts`)
 
 Dashboard
-    → Share link, rewards, milestones (FREE100, FREE500, …)
+    → Share link, rewards, milestones (FREE1000 … FREE10000)
 ```
 
 Self-referral and duplicate handling are enforced in app/auth logic where implemented; extend in DB policies if you tighten further.

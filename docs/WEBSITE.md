@@ -97,10 +97,10 @@ For the signed-in user:
 - **Referral** — share URL: `{origin}/?ref={referral_code}`  
 - **Referral count** — rows in `referrals` where user is referrer  
 - **Rewards** — `rewards` table; milestones explained in UI via `REWARD_MILESTONES` in `src/lib/rewardMilestones.ts` (mirrors server logic):  
-  - 1 referral → `FREE100` (100 likes)  
-  - 3 → `FREE500`  
-  - 5 → `FREE1000`  
-  - 10 → `FREE2500`  
+  - 1 referral → `FREE1000` (1,000 likes)
+  - 3 → `FREE3000` (3,000 likes)
+  - 5 → `FREE5000` (5,000 likes)
+  - 10 → `FREE10000` (10,000 likes)
 
 Reward detail uses **RewardModal**.
 

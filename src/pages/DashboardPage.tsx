@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { format } from "date-fns";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -33,8 +34,35 @@ type OrderRow = {
   amount: number;
   created_at: string;
   profile_link: string;
+  paid_at: string | null;
+  fulfillment_deadline_at: string | null;
   package: { name: string | null; platform: string; followers: number | null } | null;
 };
+
+function FulfillmentCountdown({ deadlineIso }: { deadlineIso: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const end = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(end)) return null;
+  const ms = Math.max(0, end - now);
+  if (ms <= 0) {
+    return (
+      <p className="text-xs font-medium text-amber-400/95 mt-1">72h delivery window ended — we&apos;re finishing up.</p>
+    );
+  }
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  const s = Math.floor((ms % 60_000) / 1000);
+  return (
+    <p className="text-xs font-mono tabular-nums text-sky-300/90 mt-1">
+      <span className="font-semibold text-muted-foreground font-sans mr-1.5">72h window:</span>
+      {h}h {m.toString().padStart(2, "0")}m {s.toString().padStart(2, "0")}s left
+    </p>
+  );
+}
 
 function referralProgressToNext(referralCount: number): { pct: number; next: (typeof REWARD_MILESTONES)[number] | null } {
   const milestones = [...REWARD_MILESTONES];
@@ -104,7 +132,9 @@ export default function DashboardPage() {
         const [oRes, rRes, pRes, cRes] = await Promise.all([
           sb
             .from("orders")
-            .select("id, tracking_id, status, progress, amount, created_at, profile_link, package:packages(name, platform, followers)")
+            .select(
+              "id, tracking_id, status, progress, amount, created_at, profile_link, paid_at, fulfillment_deadline_at, package:packages(name, platform, followers)",
+            )
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
           sb.from("rewards").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -387,7 +417,8 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-base font-semibold text-foreground mb-1">No reward codes yet</p>
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
-                    Share your link above. When friends complete a paid order, you unlock free like bonuses (FREE100, FREE500, and more).
+                    Share your link above. When friends complete a paid order, you unlock free like bonuses (1k–10k likes
+                    by milestone).
                   </p>
                   <Button asChild variant="outline" className="rounded-xl">
                     <Link to="/">See packages to share</Link>
@@ -511,7 +542,30 @@ export default function DashboardPage() {
                           </Link>
                         </Button>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2 text-left">
+                        <p className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold text-foreground/80">Profile / link</span>
+                          <a
+                            href={o.profile_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block mt-0.5 text-primary hover:underline break-all font-mono text-[10px] sm:text-xs"
+                          >
+                            {o.profile_link}
+                          </a>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold text-foreground/80">Order date</span>
+                          <span className="block mt-0.5 tabular-nums">
+                            {format(new Date(o.created_at), "PPP p")}
+                          </span>
+                        </p>
+                        {o.fulfillment_deadline_at &&
+                        (o.status === "processing" || o.status === "paid") ? (
+                          <FulfillmentCountdown deadlineIso={o.fulfillment_deadline_at} />
+                        ) : null}
+                      </div>
+                      <div className="space-y-1.5 mt-4">
                         <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                           <span>Delivery progress</span>
                           <span>{Math.round(Number(o.progress) || 0)}%</span>

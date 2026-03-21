@@ -193,10 +193,18 @@ export default function OrderPage() {
       }
 
       await ensureSession();
-      const { data: refreshed } = await sb.auth.refreshSession();
-      const accessToken = refreshed.session?.access_token;
+      const { data: refData, error: refErr } = await sb.auth.refreshSession();
+      let accessToken = refData.session?.access_token;
       if (!accessToken) {
-        throw new Error("Your session expired. Please sign in again and retry payment.");
+        const { data: snap } = await sb.auth.getSession();
+        accessToken = snap.session?.access_token ?? undefined;
+      }
+      if (!accessToken) {
+        throw new Error(
+          refErr?.message
+            ? `Session could not be refreshed (${refErr.message}). Sign out and sign in again.`
+            : "Your session expired. Please sign in again and retry payment.",
+        );
       }
 
       if (!payIdempotencyRef.current) payIdempotencyRef.current = crypto.randomUUID();
@@ -229,15 +237,19 @@ export default function OrderPage() {
       throw new Error("No checkout URL returned");
     } catch (e) {
       const detail = formatPayError(e);
+      const isAuthError =
+        /^\[401\]|Unauthorized|session expired|sign in again|bearer token|jwt|invalid.*token/i.test(detail);
       const isUnreachable =
         /Failed to send a request to the Edge Function|Relay Error invoking the Edge Function/i.test(detail) ||
         /Failed to fetch|network|load failed|ECONNREFUSED|NetworkError/i.test(detail) ||
         /^\[404\]/i.test(detail);
       const hint = devLocalCheckout
         ? ""
-        : isUnreachable
-          ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL, SUPABASE_SERVICE_ROLE_KEY — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
-          : " Check Ziina: deploy create-payment, set ZIINA_API_KEY + PUBLIC_SITE_URL secrets. Dev-only without Ziina: VITE_DEV_LOCAL_CHECKOUT=true.";
+        : isAuthError
+          ? " This is an auth error (401), not Ziina. Sign out → sign in, then Pay again. Confirm VITE_SUPABASE_URL matches the project where create-payment is deployed."
+          : isUnreachable
+            ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
+            : " Check Ziina: set ZIINA_API_KEY + PUBLIC_SITE_URL on Edge Functions. Dev-only without Ziina: VITE_DEV_LOCAL_CHECKOUT=true.";
       toast({
         title: "Payment could not start",
         description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""}${hint}`,

@@ -28,7 +28,7 @@ npx supabase secrets set \
 
 `PUBLIC_SITE_URL` must include **`https://`** and have **no trailing slash** (e.g. `https://lovely-belekoy-6e5306.netlify.app`).
 
-**Production:** `webhook-handler` **refuses all requests** if `ZIINA_WEBHOOK_SECRET` is missing — set it and register the webhook (see [`ZIINA.md`](ZIINA.md)). Local experiments still need a secret value for the function to accept POSTs.
+**Webhooks (optional):** If you use **`webhook-handler`**, set **`ZIINA_WEBHOOK_SECRET`** and register the URL in Ziina (see [`ZIINA.md`](ZIINA.md)). For a **webhook-free** stack, use **`PAYMENTS_POLL_SECRET`** + **`poll-pending-payments`** instead.
 
 Optional for Ziina sandbox:
 
@@ -36,7 +36,19 @@ Optional for Ziina sandbox:
 npx supabase secrets set ZIINA_TEST=true
 ```
 
-## 3. Deploy both functions
+### Polling (production, webhook-free path)
+
+Set a strong random secret and call **`poll-pending-payments`** on a schedule (Supabase **pg_cron** is often minute-level; for ~20s intervals use an external scheduler or GitHub Actions hitting your function URL):
+
+```bash
+npx supabase secrets set PAYMENTS_POLL_SECRET="$(openssl rand -hex 24)"
+```
+
+Invoke (example):
+
+`POST https://<project-ref>.supabase.co/functions/v1/poll-pending-payments` with header **`x-socioly-poll: <PAYMENTS_POLL_SECRET>`** (or **`Authorization: Bearer <secret>`**).
+
+## 3. Deploy Edge Functions
 
 From the repo root:
 
@@ -49,11 +61,13 @@ Or manually:
 ```bash
 npx supabase functions deploy create-payment
 npx supabase functions deploy webhook-handler
+npx supabase functions deploy poll-pending-payments
+npx supabase functions deploy check-payment-once
 ```
 
 ## 4. Confirm in the Dashboard
 
-**Supabase Dashboard → Edge Functions** — you should see **`create-payment`** and **`webhook-handler`**.  
+**Supabase Dashboard → Edge Functions** — you should see **`create-payment`**, **`webhook-handler`**, **`poll-pending-payments`**, and **`check-payment-once`**.  
 Invoke **create-payment** once from the app; if it still fails, open **Edge Functions → create-payment → Logs** for errors.
 
 ## 5. `.env` must match the same project

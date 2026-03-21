@@ -87,6 +87,51 @@ export async function createZiinaPaymentIntent(input: CreatePaymentInput): Promi
   return { redirectUrl, paymentIntentId };
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * GET payment_intent by id (Ziina API v2).
+ * @see https://docs.ziina.com/api-reference/payment-intent/retrieve
+ */
+export async function getZiinaPaymentIntentStatus(paymentIntentId: string): Promise<string | undefined> {
+  const apiKey = Deno.env.get("ZIINA_API_KEY")?.trim();
+  if (!apiKey) {
+    throw new Error("ZIINA_API_KEY is not set.");
+  }
+  const apiBase = (Deno.env.get("ZIINA_API_BASE") ?? DEFAULT_API_BASE).replace(/\/$/, "");
+  const res = await fetch(`${apiBase}/payment_intent/${encodeURIComponent(paymentIntentId)}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Ziina GET payment_intent failed (${res.status}): ${text.slice(0, 500)}`);
+  }
+  let data: { status?: string };
+  try {
+    data = JSON.parse(text) as { status?: string };
+  } catch {
+    throw new Error("Ziina GET returned non-JSON body");
+  }
+  return data.status;
+}
+
+export async function getZiinaPaymentIntentStatusWithRetry(
+  paymentIntentId: string,
+  maxAttempts = 3,
+): Promise<string | undefined> {
+  let last: Error | undefined;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await getZiinaPaymentIntentStatus(paymentIntentId);
+    } catch (e) {
+      last = e instanceof Error ? e : new Error(String(e));
+      if (i < maxAttempts - 1) await sleep(350 * (i + 1));
+    }
+  }
+  throw last ?? new Error("Ziina GET failed");
+}
+
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let out = 0;

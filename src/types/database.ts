@@ -26,6 +26,13 @@ export type DbOrderRow = {
   created_at: string;
   idempotency_key?: string | null;
   checkout_redirect_url?: string | null;
+  /** Package platform snapshot (instagram | facebook | tiktok). */
+  service_type?: string | null;
+  paid_at?: string | null;
+  /** When set, UI shows 72h fulfillment countdown until this instant. */
+  fulfillment_deadline_at?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
 };
 
 /** Public track RPC returns only non-sensitive fields (see migration `get_order_by_tracking`). */

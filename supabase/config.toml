@@ -20,3 +20,9 @@ verify_jwt = true
 
 [functions.webhook-handler]
 verify_jwt = false
+
+[functions.poll-pending-payments]
+verify_jwt = false
+
+[functions.check-payment-once]
+verify_jwt = true
