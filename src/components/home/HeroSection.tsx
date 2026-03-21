@@ -47,7 +47,10 @@ export default function HeroSection() {
                 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl leading-[1.08] mb-6"
               >
                 Grow Your Social Media{" "}
-                <span className="ig-gradient-text">Faster 🚀</span>
+                <span className="ig-gradient-text-shine">Faster</span>{" "}
+                <span className="animate-hero-rocket text-[0.92em] md:text-[0.95em] align-middle" aria-hidden>
+                  🚀
+                </span>
               </motion.h1>
 
               <motion.p

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, type To } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -23,6 +24,7 @@ export default function Navbar() {
     { to: "/", label: "Home" },
     /* RR6: `/#packages` string is unreliable; use pathname + hash */
     { to: { pathname: "/", hash: "packages" }, label: "Packages" },
+    { to: { pathname: "/", hash: "viral-loop" }, label: "Earn" },
     { to: "/track", label: "Track Order" },
     ...(user ? [{ to: "/dashboard", label: "Dashboard" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
@@ -35,15 +37,14 @@ export default function Navbar() {
       }`}
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-bold text-lg">
-          <Zap className="h-6 w-6 text-primary" />
-          <span className="gradient-text">Socioly</span>
+        <Link to="/" className="flex items-center shrink-0" aria-label="Socioly home">
+          <BrandLogo />
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
           {links.map((l) => (
             <Link
-              key={l.to}
+              key={l.label}
               to={l.to}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -81,7 +82,7 @@ export default function Navbar() {
       {open && (
         <div className="md:hidden glass-dark border-t border-border px-4 pb-4 space-y-2">
           {links.map((l) => (
-            <Link key={l.to} to={l.to} className="block py-2 text-sm font-medium text-muted-foreground">
+            <Link key={l.label} to={l.to} className="block py-2 text-sm font-medium text-muted-foreground">
               {l.label}
             </Link>
           ))}

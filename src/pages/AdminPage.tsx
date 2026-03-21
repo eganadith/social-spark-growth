@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import type { DbProfile, DbReward, OrderStatus } from "@/types/database";
+import { getAdminOrderTimeRemaining } from "@/lib/adminOrderTime";
 import { BarChart3, DollarSign, Package, ShieldAlert, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +39,16 @@ export default function AdminPage() {
   >([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const reduceMotionRef = useRef(
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  useEffect(() => {
+    if (reduceMotionRef.current) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const load = useCallback(async () => {
     if (!isSupabaseConfigured || !user || !isAdmin) return;
@@ -185,7 +196,17 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted text-muted-foreground">
                   <tr>
-                    {["Tracking", "User", "Platform", "Package", "AED", "Status"].map((h) => (
+                    {[
+                      "Tracking",
+                      "Profile link",
+                      "Ordered at",
+                      "Time remaining",
+                      "User",
+                      "Platform",
+                      "Package",
+                      "AED",
+                      "Status",
+                    ].map((h) => (
                       <th key={h} className="text-left px-4 py-3 font-medium whitespace-nowrap">
                         {h}
                       </th>
@@ -195,7 +216,28 @@ export default function AdminPage() {
                 <tbody>
                   {orders.map((o) => (
                     <tr key={o.id} className="border-t border-border hover:bg-muted/50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs">{o.tracking_id}</td>
+                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{o.tracking_id}</td>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        {o.profile_link?.trim() ? (
+                          <a
+                            href={o.profile_link.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline truncate block max-w-[200px]"
+                            title={o.profile_link}
+                          >
+                            {o.profile_link}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                        {new Date(o.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs whitespace-nowrap tabular-nums">
+                        {getAdminOrderTimeRemaining(o.created_at, o.status, now)}
+                      </td>
                       <td className="px-4 py-3 truncate max-w-[140px]">{o.email ?? o.user_id.slice(0, 8)}</td>
                       <td className="px-4 py-3 capitalize">{o.package?.platform}</td>
                       <td className="px-4 py-3">{o.package?.name}</td>

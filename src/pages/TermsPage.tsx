@@ -1,15 +1,51 @@
 import PolicyPage from "@/components/PolicyPage";
 
+const lead =
+  "Effective date: 21 March 2026.\n\nWelcome to Socioly, a platform providing social media growth packages for Instagram, Facebook, and TikTok. By using our services, you agree to the following terms:";
+
 const content = [
-  { heading: "1. Acceptance of Terms", body: "By accessing and using Social Lanka's services, you agree to be bound by these Terms & Conditions. If you do not agree with any part of these terms, you should not use our services." },
-  { heading: "2. Service Description", body: "Social Lanka provides social media growth and engagement services. We deliver followers, views, and engagement to your social media profiles through safe and compliant methods." },
-  { heading: "3. User Responsibilities", body: "You are responsible for providing accurate profile links and contact information. You must not use our services for any unlawful purposes or in violation of any social media platform's terms of service." },
-  { heading: "4. Payment Terms", body: "All payments are processed securely through our payment partners. Prices are displayed in USD and are subject to change without prior notice." },
-  { heading: "5. Service Delivery", body: "Delivery times are estimates and may vary based on order volume and platform conditions. We strive to complete all orders within the stated timeframe." },
-  { heading: "6. Limitation of Liability", body: "Social Lanka is not liable for any indirect, incidental, or consequential damages arising from the use of our services. Our total liability shall not exceed the amount paid for the specific service." },
-  { heading: "7. Modifications", body: "We reserve the right to modify these terms at any time. Continued use of our services after changes constitutes acceptance of the modified terms." },
+  {
+    heading: "1. Services",
+    body: "Socioly provides growth packages including likes, followers, and engagement boosts. All boosts are compliant with social media platforms’ policies; no bots or fake accounts are used.",
+  },
+  {
+    heading: "2. Eligibility",
+    body: "Users must be 13 years or older to use Socioly. You must provide accurate social media profile links.",
+  },
+  {
+    heading: "3. Order & Payment",
+    body: "Orders are processed after successful payment via Ziina (https://ziina.com/), a UAE-licensed payment gateway. By ticking the Terms & Conditions box at checkout, you confirm that you understand the service and agree to pay for the selected package. Prices are subject to change; all charges are displayed before payment.",
+  },
+  {
+    heading: "4. Delivery",
+    body: "Services are delivered within 72 hours from the order time. Estimated delivery time is a guideline and not a guarantee. Socioly is not responsible for delays caused by social media platform restrictions.",
+  },
+  {
+    heading: "5. Refunds & Cancellations",
+    body: "Refunds are issued only if the service fails due to technical errors on Socioly’s end. Partial or full refunds are not available for user errors (wrong profile link, incorrect package selection).",
+  },
+  {
+    heading: "6. Referral & Rewards",
+    body: "Referral rewards are granted when referred users successfully complete paid orders. Self-referrals are prohibited and will void any rewards.",
+  },
+  {
+    heading: "7. Limitation of Liability",
+    body: "Socioly is not liable for any loss of account access, platform restrictions, or third-party issues. You use the service at your own risk.",
+  },
+  {
+    heading: "8. Account Security",
+    body: "Users are responsible for their own account login information. Socioly will never ask for your social media passwords.",
+  },
+  {
+    heading: "9. Changes to Terms",
+    body: "Socioly reserves the right to update these terms. Users are encouraged to check this page periodically.",
+  },
+  {
+    heading: "10. Contact",
+    body: "For any questions, contact: support@socioly.com",
+  },
 ];
 
 export default function TermsPage() {
-  return <PolicyPage title="Terms & Conditions" content={content} />;
+  return <PolicyPage title="Terms & Conditions — Socioly" lead={lead} content={content} />;
 }

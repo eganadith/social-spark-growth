@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate, Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { findStorePackageById, formatFollowersShort, validateSocialUrl } from "@/lib/store";
 import { usePackages } from "@/hooks/usePackages";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +10,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import type { Platform } from "@/types/database";
 import { Check, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
 function isUuidParam(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -41,6 +44,8 @@ export default function OrderPage() {
   const [selectedPkg, setSelectedPkg] = useState("");
   const [step, setStep] = useState(1);
   const [processing, setProcessing] = useState(false);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [termsError, setTermsError] = useState("");
 
   const { data: packages = [], isLoading: pkgLoading } = usePackages(platform);
 
@@ -86,21 +91,27 @@ export default function OrderPage() {
 
   const platformMatches = !validation.valid || !platform || validation.platform === platform;
 
-  const canProceed =
-    step === 1
-      ? Boolean(
-          platform &&
-            profileLink &&
-            validation.valid &&
-            platformMatches &&
-            email &&
-            selectedPkg &&
-            user,
-        )
-      : Boolean(user);
+  const canProceedStep1 = Boolean(
+    platform &&
+      profileLink &&
+      validation.valid &&
+      platformMatches &&
+      email &&
+      selectedPkg &&
+      user,
+  );
+  const canProceedStep2 = Boolean(user && pkg && termsAgreed);
+  const canProceed = step === 1 ? canProceedStep1 : canProceedStep2;
 
   async function handlePay() {
     if (!user || !pkg) return;
+    if (!termsAgreed) {
+      const msg = "You must agree to the Terms and Conditions before proceeding.";
+      setTermsError(msg);
+      toast({ title: "Terms required", description: msg, variant: "destructive" });
+      return;
+    }
+    setTermsError("");
     setProcessing(true);
     try {
       const sb = getSupabase();
@@ -166,6 +177,13 @@ export default function OrderPage() {
   function handleSubmit() {
     if (step === 1) {
       setStep(2);
+      setTermsError("");
+      return;
+    }
+    if (!termsAgreed) {
+      const msg = "You must agree to the Terms and Conditions before proceeding.";
+      setTermsError(msg);
+      toast({ title: "Terms required", description: msg, variant: "destructive" });
       return;
     }
     void handlePay();
@@ -348,8 +366,19 @@ export default function OrderPage() {
               </div>
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Shield className="h-3.5 w-3.5" />
-                Secure checkout powered by Ziina. Limited daily slots — delivery starts after payment confirms.
+                <Shield className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Secure checkout powered by{" "}
+                  <a
+                    href={ZIINA_WEBSITE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Ziina
+                  </a>
+                  . Limited daily slots — delivery starts after payment confirms.
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">
                 {devLocalCheckout ? (
@@ -358,12 +387,49 @@ export default function OrderPage() {
                   </span>
                 ) : (
                   <>
-                    Pay opens <strong className="text-foreground">Ziina</strong> in your browser. Requires the{" "}
+                    Pay opens{" "}
+                    <a
+                      href={ZIINA_WEBSITE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary font-semibold hover:underline"
+                    >
+                      Ziina
+                    </a>{" "}
+                    (hosted payment gateway) in your browser. Requires the{" "}
                     <code className="rounded bg-muted px-1 py-0.5 text-[10px]">create-payment</code> function and{" "}
                     <code className="rounded bg-muted px-1 py-0.5 text-[10px]">ZIINA_API_KEY</code> secret.
                   </>
                 )}
               </p>
+
+              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                <Checkbox
+                  id="order-terms"
+                  checked={termsAgreed}
+                  onCheckedChange={(c) => {
+                    const on = c === true;
+                    setTermsAgreed(on);
+                    if (on) setTermsError("");
+                  }}
+                  className="mt-0.5"
+                  aria-invalid={Boolean(termsError)}
+                />
+                <Label htmlFor="order-terms" className="text-sm font-normal leading-relaxed cursor-pointer text-muted-foreground">
+                  I agree to the{" "}
+                  <Link
+                    to="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary font-medium hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Terms &amp; Conditions
+                  </Link>
+                  . By continuing, I confirm that I understand the service and agree to pay for the selected package.
+                </Label>
+              </div>
+              {termsError ? <p className="text-sm text-destructive">{termsError}</p> : null}
             </div>
           )}
 

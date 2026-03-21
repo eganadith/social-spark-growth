@@ -9,7 +9,12 @@ export default function AffiliatePromoSection() {
   const { ref, visible } = useScrollReveal(0.12);
 
   return (
-    <section className="relative py-20 md:py-24 overflow-hidden" ref={ref}>
+    <section
+      id="viral-loop"
+      className="relative scroll-mt-24 py-20 md:py-24 overflow-hidden"
+      ref={ref}
+      aria-labelledby="viral-loop-heading"
+    >
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -28,7 +33,7 @@ export default function AffiliatePromoSection() {
             <Sparkles className="h-3.5 w-3.5 text-pink-400" />
             Viral loop
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+          <h2 id="viral-loop-heading" className="text-3xl md:text-4xl font-bold mb-3">
             Earn <span className="ig-gradient-text">free likes</span> with Socioly
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm md:text-base leading-relaxed">

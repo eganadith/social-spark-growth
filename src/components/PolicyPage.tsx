@@ -22,7 +22,7 @@ export default function PolicyPage({ title, content, lead }: PolicyPageProps) {
         </h1>
         {lead ? (
           <p
-            className={`text-sm leading-relaxed text-foreground/90 rounded-2xl border border-border bg-card/80 px-5 py-4 mb-10 shadow-card ${
+            className={`whitespace-pre-line text-sm leading-relaxed text-foreground/90 rounded-2xl border border-border bg-card/80 px-5 py-4 mb-10 shadow-card ${
               visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             } transition-all duration-700`}
           >

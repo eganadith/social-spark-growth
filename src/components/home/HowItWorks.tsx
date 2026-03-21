@@ -1,11 +1,30 @@
-import { Link2, Package, CreditCard, TrendingUp } from "lucide-react";
+import type { ReactNode } from "react";
+import { Link2, Package, CreditCard, TrendingUp, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
-const steps = [
+const steps: { icon: LucideIcon; title: string; desc: ReactNode }[] = [
   { icon: Link2, title: "Paste your link", desc: "Enter your social media profile or page URL" },
   { icon: Package, title: "Choose a package", desc: "Pick the tier that matches your growth goal" },
-  { icon: CreditCard, title: "Pay securely", desc: "Checkout with card or wallet — Ziina hosted" },
+  {
+    icon: CreditCard,
+    title: "Pay securely",
+    desc: (
+      <>
+        Checkout with card or wallet on{" "}
+        <a
+          href={ZIINA_WEBSITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary font-medium hover:underline"
+        >
+          Ziina
+        </a>
+        , a UAE-licensed payment gateway.
+      </>
+    ),
+  },
   { icon: TrendingUp, title: "Watch it grow", desc: "Gradual, natural delivery — no password needed" },
 ];
 

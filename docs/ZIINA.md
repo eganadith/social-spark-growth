@@ -1,5 +1,7 @@
 # Ziina payments
 
+Ziina is a UAE-licensed payment platform for businesses and individuals — see [ziina.com](https://ziina.com/).
+
 Deploy **`create-payment`** first — see [`EDGE_FUNCTIONS.md`](EDGE_FUNCTIONS.md) if you see “Failed to send a request to the Edge Function”.
 
 Checkout uses [Ziina’s Payment Intent API](https://docs.ziina.com/api-reference/payment-intent/create).

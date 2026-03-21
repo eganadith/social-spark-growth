@@ -1,14 +1,14 @@
 import { Link } from "react-router-dom";
-import { Zap } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
 export default function Footer() {
   return (
     <footer className="border-t border-border bg-card py-12">
       <div className="container mx-auto px-4 grid gap-8 md:grid-cols-4">
         <div>
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg mb-3">
-            <Zap className="h-5 w-5 text-primary" />
-            <span className="gradient-text">Socioly</span>
+          <Link to="/" className="inline-flex mb-3" aria-label="Socioly home">
+            <BrandLogo className="h-7 sm:h-8" />
           </Link>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Trusted social media growth service. Real engagement, real results.
@@ -50,8 +50,15 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Socioly. All rights reserved.
+      <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground space-y-2">
+        <p>
+          Payments processed securely via{" "}
+          <a href={ZIINA_WEBSITE_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Ziina
+          </a>{" "}
+          — licensed by the Central Bank of the UAE.
+        </p>
+        <p>© {new Date().getFullYear()} Socioly. All rights reserved.</p>
       </div>
     </footer>
   );

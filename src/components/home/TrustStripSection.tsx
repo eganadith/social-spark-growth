@@ -1,13 +1,15 @@
 import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import { Lock, ShieldCheck, Headphones, BadgeCheck } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import AnimatedCounter from "@/components/home/AnimatedCounter";
+import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
-const badges = [
+const badges: { icon: LucideIcon; label: string; href?: string }[] = [
   { icon: Lock, label: "SSL encrypted" },
   { icon: ShieldCheck, label: "No password required" },
   { icon: Headphones, label: "24/7 support" },
-  { icon: BadgeCheck, label: "Safe checkout" },
+  { icon: BadgeCheck, label: "Ziina payments", href: ZIINA_WEBSITE_URL },
 ];
 
 export default function TrustStripSection() {
@@ -25,18 +27,36 @@ export default function TrustStripSection() {
         </motion.p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-14">
-          {badges.map((b, i) => (
-            <motion.div
-              key={b.label}
-              initial={false}
-              animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-              transition={{ delay: 0.05 + i * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col items-center text-center gap-2 rounded-2xl border border-white/10 bg-card/30 backdrop-blur-md p-4"
-            >
-              <b.icon className="h-6 w-6 text-pink-400" />
-              <span className="text-xs font-medium text-foreground leading-tight">{b.label}</span>
-            </motion.div>
-          ))}
+          {badges.map((b, i) => {
+            const inner = (
+              <>
+                <b.icon className="h-6 w-6 text-pink-400" />
+                <span className="text-xs font-medium text-foreground leading-tight">{b.label}</span>
+              </>
+            );
+            return (
+              <motion.div
+                key={b.label}
+                initial={false}
+                animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+                transition={{ delay: 0.05 + i * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center text-center gap-2 rounded-2xl border border-white/10 bg-card/30 backdrop-blur-md p-4"
+              >
+                {"href" in b && b.href ? (
+                  <a
+                    href={b.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center gap-2 text-center hover:opacity-90 transition-opacity"
+                  >
+                    {inner}
+                  </a>
+                ) : (
+                  inner
+                )}
+              </motion.div>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto text-center">
