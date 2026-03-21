@@ -10,6 +10,11 @@ import Index from "./pages/Index";
 import OrderPage from "./pages/OrderPage";
 import TrackPage from "./pages/TrackPage";
 import AdminPage from "./pages/AdminPage";
+import AuthPage from "./pages/AuthPage";
+import DashboardPage from "./pages/DashboardPage";
+import ReferralCapture from "./components/ReferralCapture";
+import ScrollToHash from "./components/ScrollToHash";
+import StickyGrowthCta from "./components/StickyGrowthCta";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
@@ -24,19 +29,26 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToHash />
+        <ReferralCapture />
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/order" element={<OrderPage />} />
-          <Route path="/track" element={<TrackPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/refund" element={<RefundPage />} />
-          <Route path="/delivery" element={<DeliveryPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="pb-24 md:pb-0 min-h-[60vh]">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/order" element={<OrderPage />} />
+            <Route path="/track" element={<TrackPage />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/refund" element={<RefundPage />} />
+            <Route path="/delivery" element={<DeliveryPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
         <Footer />
+        <StickyGrowthCta />
         <WhatsAppButton />
       </BrowserRouter>
     </TooltipProvider>

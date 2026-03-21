@@ -1,45 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
     --background: 220 20% 97%;
     --foreground: 220 25% 10%;
-
     --card: 0 0% 100%;
     --card-foreground: 220 25% 10%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 10%;
-
-    --primary: 210 100% 50%;
+    --primary: 280 85% 60%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 220 14% 92%;
     --secondary-foreground: 220 25% 10%;
-
     --muted: 220 14% 95%;
     --muted-foreground: 220 10% 46%;
-
-    --accent: 172 66% 50%;
+    --accent: 330 85% 60%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 220 13% 90%;
     --input: 220 13% 90%;
-    --ring: 210 100% 50%;
-
-    --radius: 0.75rem;
-
-    --hero-gradient: linear-gradient(135deg, hsl(210 100% 50%) 0%, hsl(172 66% 50%) 100%);
+    --ring: 280 85% 60%;
+    --radius: 1rem;
+    --ig-gradient: linear-gradient(135deg, #f58529, #dd2a7b, #8134af, #515bd4);
+    --hero-gradient: var(--ig-gradient);
     --card-shadow: 0 4px 24px -4px hsla(220, 25%, 10%, 0.08);
     --card-shadow-hover: 0 8px 32px -4px hsla(220, 25%, 10%, 0.14);
-
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -47,7 +37,39 @@
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 210 100% 50%;
+    --sidebar-ring: 280 85% 60%;
+  }
+
+  .dark {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 40% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 280 75% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 14%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 330 80% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 16%;
+    --input: 217 33% 16%;
+    --ring: 280 75% 58%;
+    --card-shadow: 0 4px 28px -6px hsla(260, 80%, 5%, 0.6);
+    --card-shadow-hover: 0 12px 40px -8px hsla(280, 70%, 8%, 0.75);
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 280 75% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 14%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 16%;
+    --sidebar-ring: 280 75% 58%;
   }
 }
 
@@ -82,6 +104,29 @@
     background: hsla(0, 0%, 100%, 0.8);
     border: 1px solid hsla(220, 13%, 90%, 0.5);
   }
+  .dark .glass,
+  .glass-dark {
+    backdrop-filter: blur(20px);
+    background: hsla(222, 40%, 10%, 0.72);
+    border: 1px solid hsla(0, 0%, 100%, 0.08);
+    box-shadow: 0 8px 32px -8px hsla(0, 0%, 0%, 0.4);
+  }
+  .ig-gradient-text {
+    background: var(--ig-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .ig-gradient-border {
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box, var(--ig-gradient) border-box;
+    border: 2px solid transparent;
+  }
+  .package-popular-glow {
+    box-shadow:
+      0 0 0 1px hsla(280, 60%, 55%, 0.25),
+      0 12px 40px -8px hsla(300, 70%, 45%, 0.35),
+      0 4px 24px -4px hsla(220, 25%, 10%, 0.12);
+  }
 }
 
 @keyframes fade-in-up {
@@ -105,4 +150,33 @@
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsla(142, 70%, 45%, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 12px hsla(142, 70%, 45%, 0);
+  }
+}
+
+@keyframes cta-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 10px 40px -10px hsla(280, 80%, 45%, 0.5);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 14px 48px -8px hsla(300, 70%, 50%, 0.55);
+  }
+}
+
+@layer utilities {
+  .animate-cta-pulse {
+    animation: cta-pulse 2.6s ease-in-out infinite;
+  }
+  .animate-wa-pulse {
+    animation: pulse-glow 2.2s ease-in-out infinite;
+  }
 }

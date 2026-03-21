@@ -1,0 +1,21 @@
+# https://supabase.com/docs/guides/cli/config
+#
+# project_id must be your 20-character Reference ID (not the project name or URL).
+# Set it by running from the repo root:
+#   npx supabase link --project-ref <paste-reference-id-here>
+# (Dashboard → Project Settings → General → Reference ID)
+
+project_id = ""
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed/seed_packages.sql"]
+
+[api]
+enabled = true
+
+[functions]
+verify_jwt = true
+
+[functions.webhook-handler]
+verify_jwt = false

@@ -1,48 +1,51 @@
 import { Link2, Package, CreditCard, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const steps = [
-  { icon: Link2, title: "Paste your link", desc: "Enter your social media profile or post URL" },
-  { icon: Package, title: "Choose a package", desc: "Select the growth plan that fits your needs" },
-  { icon: CreditCard, title: "Make payment", desc: "Pay securely with card or digital wallet" },
-  { icon: TrendingUp, title: "Watch your growth", desc: "Sit back and see real results roll in" },
+  { icon: Link2, title: "Paste your link", desc: "Enter your social media profile or page URL" },
+  { icon: Package, title: "Choose a package", desc: "Pick the tier that matches your growth goal" },
+  { icon: CreditCard, title: "Pay securely", desc: "Checkout with card or wallet — Ziina hosted" },
+  { icon: TrendingUp, title: "Watch it grow", desc: "Gradual, natural delivery — no password needed" },
 ];
 
 export default function HowItWorks() {
   const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="py-20" ref={ref}>
+    <section className="py-20 md:py-24" ref={ref}>
       <div className="container mx-auto px-4">
-        <div
-          className={`text-center mb-14 transition-all duration-700 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
+        <motion.div
+          initial={false}
+          animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center mb-14"
         >
-          <h2 className="text-3xl font-bold mb-3">
-            How It <span className="gradient-text">Works</span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            How it <span className="ig-gradient-text">works</span>
           </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Get started in minutes with our simple 4-step process.
+          <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
+            Four simple steps — most users finish in under two minutes.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
           {steps.map((s, i) => (
-            <div
+            <motion.div
               key={s.title}
-              className={`text-center transition-all duration-700 ${
-                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              }`}
-              style={{ transitionDelay: visible ? `${100 + i * 100}ms` : "0ms" }}
+              initial={false}
+              animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.45, delay: 0.08 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4 }}
+              className="text-center rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 shadow-lg"
             >
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-bg shadow-md">
                 <s.icon className="h-7 w-7 text-white" />
               </div>
-              <div className="text-xs font-bold text-primary mb-2">STEP {i + 1}</div>
-              <h3 className="font-semibold mb-1">{s.title}</h3>
-              <p className="text-sm text-muted-foreground">{s.desc}</p>
-            </div>
+              <div className="text-xs font-bold text-pink-400 mb-2">STEP {i + 1}</div>
+              <h3 className="font-semibold mb-2">{s.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
+            </motion.div>
           ))}
         </div>
       </div>

@@ -14,7 +14,7 @@ export default function FAQSection() {
   const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="py-20 bg-card" ref={ref}>
+    <section className="py-20 md:py-24 border-t border-white/5" ref={ref}>
       <div className="container mx-auto px-4 max-w-2xl">
         <div
           className={`text-center mb-12 transition-all duration-700 ${
@@ -22,7 +22,7 @@ export default function FAQSection() {
           }`}
         >
           <h2 className="text-3xl font-bold mb-3">
-            Frequently Asked <span className="gradient-text">Questions</span>
+            Frequently asked <span className="ig-gradient-text">questions</span>
           </h2>
         </div>
 

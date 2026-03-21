@@ -14,26 +14,47 @@ export default function WhyChooseUs() {
   const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="py-20 bg-card" ref={ref}>
+    <section className="py-20 md:py-24 bg-muted/20 border-y border-white/5" ref={ref}>
       <div className="container mx-auto px-4">
         <div
           className={`text-center mb-14 transition-all duration-700 ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           }`}
         >
-          <h2 className="text-3xl font-bold mb-3">
-            Why Choose <span className="gradient-text">Social Lanka</span>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Why <span className="ig-gradient-text">Socioly</span>
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto">
             We're committed to helping you grow safely and effectively.
           </p>
         </div>
 
+        <div
+          className={`max-w-5xl mx-auto mb-10 w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl ring-1 ring-white/5 transition-all duration-700 ${
+            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          {/* Fixed height + w-full: aspect-ratio + max-h was shrinking width and left empty space */}
+          <div className="relative w-full min-h-[200px] h-[220px] sm:h-[260px] md:h-[300px] bg-muted">
+            <img
+              src="/Images/Professionals_discussing_busines%E2%80%A6_202603202234.jpeg"
+              alt="Professionals discussing business strategy"
+              className="absolute inset-0 block h-full w-full object-cover object-center"
+              width={1200}
+              height={500}
+              decoding="async"
+              loading="lazy"
+              sizes="(max-width: 1024px) 100vw, 1024px"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/30" />
+          </div>
+        </div>
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           {reasons.map((r, i) => (
             <div
               key={r.title}
-              className={`rounded-xl bg-background border border-border p-6 shadow-card hover:shadow-card-hover transition-all duration-300 ${
+              className={`rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 shadow-lg hover:border-white/20 transition-all duration-300 ${
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
               style={{ transitionDelay: visible ? `${100 + i * 80}ms` : "0ms" }}

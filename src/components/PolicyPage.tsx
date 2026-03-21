@@ -3,9 +3,11 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 interface PolicyPageProps {
   title: string;
   content: { heading: string; body: string }[];
+  /** Optional highlighted block shown under the title (e.g. required legal/delivery copy). */
+  lead?: string;
 }
 
-export default function PolicyPage({ title, content }: PolicyPageProps) {
+export default function PolicyPage({ title, content, lead }: PolicyPageProps) {
   const { ref, visible } = useScrollReveal(0.1);
 
   return (
@@ -18,6 +20,15 @@ export default function PolicyPage({ title, content }: PolicyPageProps) {
         >
           {title}
         </h1>
+        {lead ? (
+          <p
+            className={`text-sm leading-relaxed text-foreground/90 rounded-2xl border border-border bg-card/80 px-5 py-4 mb-10 shadow-card ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            } transition-all duration-700`}
+          >
+            {lead}
+          </p>
+        ) : null}
         <div className="space-y-8">
           {content.map((section, i) => (
             <div

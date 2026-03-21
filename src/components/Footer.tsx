@@ -8,7 +8,7 @@ export default function Footer() {
         <div>
           <Link to="/" className="flex items-center gap-2 font-bold text-lg mb-3">
             <Zap className="h-5 w-5 text-primary" />
-            <span className="gradient-text">Social Lanka</span>
+            <span className="gradient-text">Socioly</span>
           </Link>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Trusted social media growth service. Real engagement, real results.
@@ -17,9 +17,21 @@ export default function Footer() {
         <div>
           <h4 className="font-semibold mb-3 text-sm">Services</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/#packages" className="hover:text-foreground transition-colors">Instagram</Link></li>
-            <li><Link to="/#packages" className="hover:text-foreground transition-colors">TikTok</Link></li>
-            <li><Link to="/#packages" className="hover:text-foreground transition-colors">YouTube</Link></li>
+            <li>
+              <Link to={{ pathname: "/", hash: "packages" }} className="hover:text-foreground transition-colors">
+                Instagram
+              </Link>
+            </li>
+            <li>
+              <Link to={{ pathname: "/", hash: "packages" }} className="hover:text-foreground transition-colors">
+                TikTok
+              </Link>
+            </li>
+            <li>
+              <Link to={{ pathname: "/", hash: "packages" }} className="hover:text-foreground transition-colors">
+                Facebook
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
@@ -39,7 +51,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Social Lanka. All rights reserved.
+        © {new Date().getFullYear()} Socioly. All rights reserved.
       </div>
     </footer>
   );
