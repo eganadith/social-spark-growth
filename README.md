@@ -48,6 +48,15 @@ Share `https://your-domain/?ref=REFERRAL_CODE`. Codes are generated per profile 
 
 Production checkout uses **Ziina’s hosted payment page** (Payment Intent API). Details: [`docs/ZIINA.md`](docs/ZIINA.md).
 
-### “Payment could not start”
+### “Payment could not start” / “Failed to send a request to the Edge Function”
 
-Deploy **`create-payment`**, set **`ZIINA_API_KEY`**, and ensure **`PUBLIC_SITE_URL`** matches your app. For local UI-only testing without Ziina, you can set **`VITE_DEV_LOCAL_CHECKOUT=true`** in `.env` (pending order only — **not** for production).
+The browser must reach **`/functions/v1/create-payment`** on the **same** Supabase project as **`VITE_SUPABASE_URL`**. From the repo root:
+
+```bash
+npx supabase login
+npx supabase link --project-ref YOUR_20_CHAR_REF   # matches your Supabase URL
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="…" PUBLIC_SITE_URL="https://your-site.com" ZIINA_API_KEY="…"
+npm run functions:deploy
+```
+
+See [`docs/EDGE_FUNCTIONS.md`](docs/EDGE_FUNCTIONS.md). For **local UI-only** testing without Ziina, set **`VITE_DEV_LOCAL_CHECKOUT=true`** in `.env` (pending order only — **not** for production).

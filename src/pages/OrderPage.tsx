@@ -30,6 +30,19 @@ function formatPayError(e: unknown): string {
 
 const devLocalCheckout = import.meta.env.VITE_DEV_LOCAL_CHECKOUT === "true";
 
+function supabaseProjectRefHint(): string {
+  try {
+    const raw = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    if (!raw) return "";
+    const host = new URL(raw).hostname;
+    const ref = host.split(".")[0];
+    if (!ref || ref === "localhost") return "";
+    return ` Your app is using Supabase project ref “${ref}” — deploy create-payment to that same project.`;
+  } catch {
+    return "";
+  }
+}
+
 export default function OrderPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -137,6 +150,12 @@ export default function OrderPage() {
         return;
       }
 
+      const { data: refreshed } = await sb.auth.refreshSession();
+      const accessToken = refreshed.session?.access_token;
+      if (!accessToken) {
+        throw new Error("Your session expired. Please sign in again and retry payment.");
+      }
+
       const { data, error } = await sb.functions.invoke<{ checkoutUrl?: string; trackingId?: string; error?: string }>(
         "create-payment",
         {
@@ -144,6 +163,9 @@ export default function OrderPage() {
             package_id: pkg.id,
             profile_link: profileLink.trim(),
             email: email.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
           },
         },
       );
@@ -162,7 +184,7 @@ export default function OrderPage() {
       const hint = devLocalCheckout
         ? ""
         : isUnreachable
-          ? " The create-payment function is not deployed to this Supabase project (or the URL/key is wrong). Run npm run functions:deploy after supabase link, and set secrets — see docs/EDGE_FUNCTIONS.md."
+          ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL, SUPABASE_SERVICE_ROLE_KEY — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
           : " Check Ziina: deploy create-payment, set ZIINA_API_KEY + PUBLIC_SITE_URL secrets. Dev-only without Ziina: VITE_DEV_LOCAL_CHECKOUT=true.";
       toast({
         title: "Payment could not start",
