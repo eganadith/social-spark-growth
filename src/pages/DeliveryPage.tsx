@@ -6,7 +6,7 @@ const deliveryLead =
 const content = [
   {
     heading: "1. When delivery starts",
-    body: "Delivery begins shortly after your order is placed and payment is confirmed. Most orders are completed within 24 to 72 hours depending on package size and platform load.",
+    body: "Delivery begins after your order is received and confirmed by our team. Most orders are completed within 24 to 72 hours depending on package size and platform load.",
   },
   {
     heading: "2. Gradual, natural growth",
@@ -14,7 +14,7 @@ const content = [
   },
   {
     heading: "3. Order processing",
-    body: "Orders begin processing within minutes of confirmed payment. You will receive a tracking ID to monitor progress on the Track Order page.",
+    body: "You receive a tracking ID as soon as you submit your order. Use the Track Order page to monitor progress while we process your delivery.",
   },
   {
     heading: "4. Delays",

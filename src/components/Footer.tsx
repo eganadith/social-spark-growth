@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { BrandLogo } from "@/components/BrandLogo";
-import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
 export default function Footer() {
   return (
@@ -50,14 +49,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground space-y-2">
-        <p>
-          Payments processed securely via{" "}
-          <a href={ZIINA_WEBSITE_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-            Ziina
-          </a>{" "}
-          — licensed by the Central Bank of the UAE.
-        </p>
+      <div className="container mx-auto px-4 mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
         <p>© {new Date().getFullYear()} Socioly. All rights reserved.</p>
       </div>
     </footer>

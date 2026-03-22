@@ -37,7 +37,7 @@ export default function AuthPage() {
         if (!data.session) {
           toast({
             title: "Check your email",
-            description: "We sent a confirmation link. After you confirm, sign in to continue checkout.",
+            description: "We sent a confirmation link. After you confirm, sign in to continue your order.",
           });
           const resume = peekAuthNext() || nextFromUrl;
           navigate(`/check-email?next=${encodeURIComponent(resume)}`, { replace: true });

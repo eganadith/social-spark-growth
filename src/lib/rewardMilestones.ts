@@ -1,4 +1,4 @@
-/** Mirrors Edge Function rewards — free likes unlocked per paid referral count. */
+/** Free likes unlocked per qualifying referral count (tiers for dashboard / rewards UI). */
 export const REWARD_MILESTONES = [
   { referrals: 1, code: "FREE1000", likes: 1000 },
   { referrals: 3, code: "FREE3000", likes: 3000 },

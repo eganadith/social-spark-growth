@@ -122,7 +122,7 @@ export default function PackagesSection() {
             package built for creators and brands.
           </p>
           <p className="mt-3 text-xs font-medium text-emerald-600/90 dark:text-emerald-400/90 max-w-lg mx-auto">
-            Secure card checkout via Ziina (UAE licensed) — your card details never touch our servers.
+            Place your order in-app — you get a tracking ID as soon as you submit.
           </p>
           <p className="mt-4 text-sm text-foreground/80 max-w-lg mx-auto">
             <span className="font-semibold ig-gradient-text">10K · 499 AED</span> is our most chosen tier — maximum

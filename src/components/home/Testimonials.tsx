@@ -6,7 +6,7 @@ const testimonials = [
   {
     name: "Leo M. · Lifestyle creator",
     handle: "480K followers · Dubai",
-    text: "We ran Socioly on a brand collab — clean dashboard, Ziina checkout was instant, and delivery stayed gradual. That is exactly what I pitch to partners.",
+    text: "We ran Socioly on a brand collab — clean dashboard, simple order flow, and delivery stayed gradual. That is exactly what I pitch to partners.",
     rating: 5,
   },
   {

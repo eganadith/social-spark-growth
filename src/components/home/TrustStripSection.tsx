@@ -3,13 +3,12 @@ import type { LucideIcon } from "lucide-react";
 import { Lock, ShieldCheck, Headphones, BadgeCheck } from "lucide-react";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import AnimatedCounter from "@/components/home/AnimatedCounter";
-import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
 
 const badges: { icon: LucideIcon; label: string; href?: string }[] = [
   { icon: Lock, label: "SSL encrypted" },
   { icon: ShieldCheck, label: "No password required" },
   { icon: Headphones, label: "24/7 support" },
-  { icon: BadgeCheck, label: "Ziina payments", href: ZIINA_WEBSITE_URL },
+  { icon: BadgeCheck, label: "Live order tracking" },
 ];
 
 export default function TrustStripSection() {

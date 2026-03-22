@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
+import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
 import { ensureSession } from "@/lib/authSession";
 import type { DbReward } from "@/types/database";
 import {
@@ -36,6 +38,7 @@ type OrderRow = {
   profile_link: string;
   paid_at: string | null;
   fulfillment_deadline_at: string | null;
+  checkout_redirect_url: string | null;
   package: { name: string | null; platform: string; followers: number | null } | null;
 };
 
@@ -101,6 +104,7 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [rewardFocus, setRewardFocus] = useState<DbReward | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
 
   const shareUrl = useMemo(() => {
     if (!referralCode || typeof window === "undefined") return "";
@@ -133,7 +137,7 @@ export default function DashboardPage() {
           sb
             .from("orders")
             .select(
-              "id, tracking_id, status, progress, amount, created_at, profile_link, paid_at, fulfillment_deadline_at, package:packages(name, platform, followers)",
+              "id, tracking_id, status, progress, amount, created_at, profile_link, paid_at, fulfillment_deadline_at, checkout_redirect_url, package:packages(name, platform, followers)",
             )
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
@@ -163,6 +167,26 @@ export default function DashboardPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Link copied" });
+  }
+
+  async function startCheckout(orderId: string) {
+    try {
+      setPayingOrderId(orderId);
+      const pay = await invokeAuthedFunction<{ redirect_url: string }>(
+        "create-ziina-payment",
+        buildZiinaPaymentBody(orderId),
+      );
+      if (!pay.redirect_url) throw new Error("No checkout URL returned");
+      window.location.href = pay.redirect_url;
+    } catch (e) {
+      toast({
+        title: "Could not start checkout",
+        description: e instanceof Error ? e.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setPayingOrderId(null);
+    }
   }
 
   async function markRewardUsed(id: string) {
@@ -355,7 +379,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">
                       {nextTier.referrals - referralCount > 0
                         ? `${nextTier.referrals - referralCount} more paid referral${nextTier.referrals - referralCount === 1 ? "" : "s"} for ${nextTier.likes.toLocaleString()} bonus likes.`
-                        : "You’ve reached the next tier — rewards sync after their payment clears."}
+                        : "You’ve reached the next tier — rewards unlock when referrals complete qualifying orders."}
                     </p>
                   </div>
                 )}
@@ -501,7 +525,7 @@ export default function DashboardPage() {
                   </div>
                   <p className="text-base font-semibold text-foreground mb-1">No orders yet</p>
                   <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
-                    Pick a growth package and checkout — you&apos;ll track delivery progress here.
+                    Pick a growth package and submit an order — you&apos;ll track delivery progress here.
                   </p>
                   <Button asChild variant="hero" className="rounded-xl">
                     <Link to="/order">Browse packages</Link>
@@ -535,12 +559,32 @@ export default function DashboardPage() {
                             <span className="capitalize">{platformLabel(o.package?.platform)}</span>
                           </p>
                         </div>
-                        <Button variant="ghost" size="sm" className="rounded-xl gap-1.5 text-primary shrink-0" asChild>
-                          <Link to={`/track?id=${encodeURIComponent(o.tracking_id)}`}>
-                            Track
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Link>
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          {o.status === "pending" && o.checkout_redirect_url ? (
+                            <Button variant="hero" size="sm" className="rounded-xl" asChild>
+                              <a href={o.checkout_redirect_url} rel="noopener noreferrer">
+                                Complete payment
+                              </a>
+                            </Button>
+                          ) : null}
+                          {o.status === "pending" && !o.checkout_redirect_url ? (
+                            <Button
+                              variant="hero"
+                              size="sm"
+                              className="rounded-xl"
+                              disabled={payingOrderId === o.id}
+                              onClick={() => void startCheckout(o.id)}
+                            >
+                              {payingOrderId === o.id ? "Starting…" : "Start payment"}
+                            </Button>
+                          ) : null}
+                          <Button variant="ghost" size="sm" className="rounded-xl gap-1.5 text-primary" asChild>
+                            <Link to={`/track?id=${encodeURIComponent(o.tracking_id)}`}>
+                              Track
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-2 text-left">
                         <p className="text-[11px] text-muted-foreground">

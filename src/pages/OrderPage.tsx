@@ -9,10 +9,10 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import type { Platform } from "@/types/database";
 import { Check, AlertCircle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ZIINA_WEBSITE_URL } from "@/lib/paymentLinks";
-import { invokeEdgeFunction } from "@/lib/supabaseInvoke";
 import { persistAuthNext } from "@/lib/authRedirect";
 import { savePendingOrderDraft, loadPendingOrderDraft, clearPendingOrderDraft } from "@/lib/orderDraft";
+import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
+import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
 
 function isUuidParam(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -30,50 +30,13 @@ function formatPayError(e: unknown): string {
   }
 }
 
-/** Non-2xx invoke responses leave `data` null; the JSON error is on `response` (see @supabase/functions-js). */
-async function edgeFunctionErrorDetail(response: Response | undefined, fallback: string): Promise<string> {
-  if (!response || response.ok) return fallback;
-  try {
-    const ct = (response.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
-    if (ct === "application/json") {
-      const j = (await response.clone().json()) as { error?: unknown };
-      if (typeof j.error === "string" && j.error.trim()) return j.error.trim();
-    } else {
-      const t = (await response.clone().text()).trim();
-      if (t) return t.slice(0, 400);
-    }
-  } catch {
-    /* ignore */
-  }
-  return response.status ? `[${response.status}] ${fallback}` : fallback;
-}
-
-/**
- * Skip Ziina and insert a pending order + redirect to Track — opt-in only (`VITE_MOCK_CHECKOUT=true` while on `vite`).
- * Default local dev uses real `create-payment` → Ziina so you can debug the payment gateway.
- */
-const mockCheckoutSkipZiina = import.meta.env.DEV && import.meta.env.VITE_MOCK_CHECKOUT === "true";
-
-function supabaseProjectRefHint(): string {
-  try {
-    const raw = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    if (!raw) return "";
-    const host = new URL(raw).hostname;
-    const ref = host.split(".")[0];
-    if (!ref || ref === "localhost") return "";
-    return ` Your app is using Supabase project ref “${ref}” — deploy create-payment to that same project.`;
-  } catch {
-    return "";
-  }
-}
-
 export default function OrderPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const preselected = params.get("pkg");
 
-  const { user, loading: authLoading, isConfigured } = useAuth();
+  const { user, isConfigured } = useAuth();
 
   const [platform, setPlatform] = useState<Platform | "">("");
   const [profileLink, setProfileLink] = useState("");
@@ -83,7 +46,7 @@ export default function OrderPage() {
   const [processing, setProcessing] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [termsError, setTermsError] = useState("");
-  const payIdempotencyRef = useRef<string | null>(null);
+  const submitIdempotencyRef = useRef<string | null>(null);
 
   const { data: packages = [], isLoading: pkgLoading } = usePackages(platform);
 
@@ -159,7 +122,7 @@ export default function OrderPage() {
   const canProceedStep2 = Boolean(user && pkg && termsAgreed);
   const canProceed = step === 1 ? canProceedStep1Guest : canProceedStep2;
 
-  async function handlePay() {
+  async function handleSubmitOrder() {
     if (!user || !pkg) return;
     if (!termsAgreed) {
       const msg = "You must agree to the Terms and Conditions before proceeding.";
@@ -171,10 +134,11 @@ export default function OrderPage() {
     setProcessing(true);
     try {
       const sb = getSupabase();
-
-      if (mockCheckoutSkipZiina) {
-        const trackingId = `SL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
-        const { error: insErr } = await sb.from("orders").insert({
+      if (!submitIdempotencyRef.current) submitIdempotencyRef.current = crypto.randomUUID();
+      const trackingId = `SL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+      const { data: inserted, error: insErr } = await sb
+        .from("orders")
+        .insert({
           user_id: user.id,
           package_id: pkg.id,
           amount: pkg.price,
@@ -183,58 +147,44 @@ export default function OrderPage() {
           tracking_id: trackingId,
           profile_link: profileLink.trim(),
           email: email.trim() || user.email || null,
-        });
-        if (insErr) throw new Error(insErr.message);
-        clearPendingOrderDraft();
+          idempotency_key: submitIdempotencyRef.current,
+        })
+        .select("id")
+        .single();
+      if (insErr) throw new Error(insErr.message);
+      if (!inserted?.id) throw new Error("Order was not created");
+
+      let redirectUrl: string;
+      try {
+        const pay = await invokeAuthedFunction<{ redirect_url: string }>(
+          "create-ziina-payment",
+          buildZiinaPaymentBody(inserted.id),
+        );
+        redirectUrl = pay.redirect_url;
+        if (!redirectUrl) throw new Error("No checkout URL returned");
+      } catch (e) {
+        const detail = formatPayError(e);
         toast({
-          title: "Demo checkout",
-          description: "Order saved (no Edge Function). Complete payment in production with create-payment deployed.",
+          title: "Order saved — payment could not start",
+          description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""} You can retry from your dashboard.`,
+          variant: "destructive",
         });
-        navigate(`/track?id=${encodeURIComponent(trackingId)}&mock=1`);
-        return;
-      }
-
-      if (!payIdempotencyRef.current) payIdempotencyRef.current = crypto.randomUUID();
-      const idempotency_key = payIdempotencyRef.current;
-
-      const { data, error, response: fnResponse } = await invokeEdgeFunction<{
-        checkoutUrl?: string;
-        trackingId?: string;
-        error?: string;
-      }>("create-payment", {
-        package_id: pkg.id,
-        profile_link: profileLink.trim(),
-        email: email.trim(),
-        idempotency_key,
-      });
-      if (error) {
-        throw new Error(await edgeFunctionErrorDetail(fnResponse, formatPayError(error)));
-      }
-      if (data?.error) throw new Error(data.error);
-      if (data?.checkoutUrl) {
         clearPendingOrderDraft();
-        window.location.href = data.checkoutUrl;
+        navigate(`/dashboard`);
         return;
       }
-      throw new Error("No checkout URL returned");
+
+      clearPendingOrderDraft();
+      toast({
+        title: "Redirecting to secure checkout",
+        description: `Tracking ID: ${trackingId}. Complete payment to confirm your order.`,
+      });
+      window.location.href = redirectUrl;
     } catch (e) {
       const detail = formatPayError(e);
-      const isAuthError =
-        /^\[401\]|Unauthorized|session expired|sign in again|bearer token|jwt|invalid.*token/i.test(detail);
-      const isUnreachable =
-        /Failed to send a request to the Edge Function|Relay Error invoking the Edge Function/i.test(detail) ||
-        /Failed to fetch|network|load failed|ECONNREFUSED|NetworkError/i.test(detail) ||
-        /^\[404\]/i.test(detail);
-      const hint = mockCheckoutSkipZiina
-        ? ""
-        : isAuthError
-          ? " This is an auth error (401), not Ziina. Sign out → sign in, then Pay again. On Netlify, VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be from the same Supabase project where create-payment is deployed."
-          : isUnreachable
-            ? ` Deploy the create-payment Edge Function to this Supabase project (Dashboard → Edge Functions, or CLI: supabase link + npm run functions:deploy). Set ZIINA_API_KEY, PUBLIC_SITE_URL — see docs/EDGE_FUNCTIONS.md.${supabaseProjectRefHint()}`
-            : " Check Ziina: set ZIINA_API_KEY + PUBLIC_SITE_URL on Edge Functions (use http://localhost:PORT for local payment tests). DB-only demo without Ziina: VITE_MOCK_CHECKOUT=true.";
       toast({
-        title: "Payment could not start",
-        description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""}${hint}`,
+        title: "Could not submit order",
+        description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""}`,
         variant: "destructive",
       });
     } finally {
@@ -266,7 +216,7 @@ export default function OrderPage() {
         navigate(`/auth?next=${encodeURIComponent(next)}`);
         return;
       }
-      payIdempotencyRef.current = null;
+      submitIdempotencyRef.current = null;
       setStep(2);
       setTermsError("");
       return;
@@ -277,7 +227,7 @@ export default function OrderPage() {
       toast({ title: "Terms required", description: msg, variant: "destructive" });
       return;
     }
-    void handlePay();
+    void handleSubmitOrder();
   }
 
   if (!isConfigured) {
@@ -287,7 +237,7 @@ export default function OrderPage() {
           <h1 className="text-xl font-bold mb-2">Orders unavailable</h1>
           <p className="text-sm text-muted-foreground mb-4">
             Configure <code className="text-xs">VITE_SUPABASE_URL</code> and{" "}
-            <code className="text-xs">VITE_SUPABASE_ANON_KEY</code> to enable checkout.
+            <code className="text-xs">VITE_SUPABASE_ANON_KEY</code> to enable orders.
           </p>
           <Button asChild variant="outline">
             <Link to="/">Home</Link>
@@ -301,11 +251,11 @@ export default function OrderPage() {
     <div className="min-h-screen pt-24 pb-16">
       <div className="container mx-auto px-4 max-w-xl">
         <div className="text-center mb-8 opacity-0 animate-fade-in-up">
-          <h1 className="text-3xl font-bold mb-2">{step === 1 ? "Place Your Order" : "Checkout"}</h1>
+          <h1 className="text-3xl font-bold mb-2">{step === 1 ? "Place your order" : "Review & submit"}</h1>
           <p className="text-muted-foreground text-sm">
             {step === 1
               ? "Fill in your details and select a package (prices in AED)"
-              : "You’ll be redirected to Ziina’s hosted checkout (card, Apple Pay, Google Pay where supported)"}
+              : "Confirm your package and accept the terms — you’ll pay securely via Ziina, then we’ll confirm your order"}
           </p>
         </div>
 
@@ -454,40 +404,10 @@ export default function OrderPage() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Shield className="h-3.5 w-3.5 shrink-0" />
                 <span>
-                  Secure checkout powered by{" "}
-                  <a
-                    href={ZIINA_WEBSITE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary font-medium hover:underline"
-                  >
-                    Ziina
-                  </a>
-                  . Limited daily slots — delivery starts after payment confirms.
+                  Your profile link and email are stored securely. Limited daily slots — we&apos;ll confirm next steps
+                  after you submit.
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {mockCheckoutSkipZiina ? (
-                  <span className="text-amber-700 dark:text-amber-400">
-                    Mock mode: skipping Ziina — pending order + track only. Unset VITE_MOCK_CHECKOUT to test real checkout.
-                  </span>
-                ) : (
-                  <>
-                    Pay opens{" "}
-                    <a
-                      href={ZIINA_WEBSITE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary font-semibold hover:underline"
-                    >
-                      Ziina
-                    </a>{" "}
-                    (hosted payment gateway) in your browser. Requires the{" "}
-                    <code className="rounded bg-muted px-1 py-0.5 text-[10px]">create-payment</code> function and{" "}
-                    <code className="rounded bg-muted px-1 py-0.5 text-[10px]">ZIINA_API_KEY</code> secret.
-                  </>
-                )}
-              </p>
 
               <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
                 <Checkbox
@@ -501,7 +421,6 @@ export default function OrderPage() {
                   className="mt-0.5"
                   aria-invalid={Boolean(termsError)}
                 />
-                {/* Do not wrap the Link in a single <label>: clicks hit the checkbox instead of navigating. */}
                 <p className="text-sm font-normal leading-relaxed text-muted-foreground">
                   <label htmlFor="order-terms" className="cursor-pointer">
                     I agree to the{" "}
@@ -514,7 +433,7 @@ export default function OrderPage() {
                     Terms &amp; Conditions
                   </Link>
                   <label htmlFor="order-terms" className="cursor-pointer">
-                    . By continuing, I confirm that I understand the service and agree to pay for the selected package.
+                    . By continuing, I confirm that I understand the service and the order total shown above.
                   </label>
                 </p>
               </div>
@@ -528,7 +447,7 @@ export default function OrderPage() {
                 variant="outline"
                 type="button"
                 onClick={() => {
-                  payIdempotencyRef.current = null;
+                  submitIdempotencyRef.current = null;
                   setStep(1);
                 }}
                 className="flex-1"
@@ -536,16 +455,22 @@ export default function OrderPage() {
                 Back
               </Button>
             )}
-            <Button variant="hero" className="flex-1" disabled={!canProceed || processing || pkgLoading} onClick={handleSubmit}>
+            <Button
+              type="button"
+              variant="hero"
+              className="flex-1"
+              disabled={!canProceed || processing || pkgLoading}
+              onClick={handleSubmit}
+            >
               {processing ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Redirecting…
+                  Submitting…
                 </span>
               ) : step === 1 ? (
-                user ? "Continue to payment" : "Sign in to continue"
+                user ? "Continue to review" : "Sign in to continue"
               ) : (
-                `Pay ${pkg?.price ?? ""} AED`
+                `Submit order · ${pkg?.price ?? ""} AED`
               )}
             </Button>
           </div>

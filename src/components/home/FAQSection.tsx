@@ -5,7 +5,10 @@ const faqs = [
   { q: "Is this service safe for my account?", a: "Absolutely. We never ask for your password. All growth is delivered through safe, organic methods that comply with platform guidelines." },
   { q: "How fast will I see results?", a: "Most orders begin processing within minutes. Delivery times vary by package, typically between 1-5 days." },
   { q: "Are the followers and views real?", a: "Yes. We work with real, active accounts to ensure genuine engagement and lasting results." },
-  { q: "What payment methods do you accept?", a: "We accept all major credit/debit cards, Apple Pay, and Google Pay through our secure payment processor." },
+  {
+    q: "How do I pay for a package?",
+    a: "Submit your order in the app to receive a tracking ID. Our team will follow up with you on billing or invoicing if needed — use WhatsApp or email for the fastest reply.",
+  },
   { q: "What if I don't receive my order?", a: "We offer a full refund if we are unable to deliver your order. Contact our support team with your tracking ID." },
   { q: "Can I order for multiple accounts?", a: "Yes! Simply place a separate order for each account you'd like to grow." },
 ];

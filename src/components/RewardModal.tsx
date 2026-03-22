@@ -32,7 +32,7 @@ export default function RewardModal({ reward, open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Reward unlocked</DialogTitle>
           <DialogDescription>
-            Redeem your free likes with our team or at checkout — share this code with support when you&apos;re ready.
+            Redeem your free likes with our team — share this code with support when you&apos;re ready.
           </DialogDescription>
         </DialogHeader>
         {reward && (

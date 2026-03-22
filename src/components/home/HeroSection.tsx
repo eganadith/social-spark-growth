@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Shield, Clock, Users, Zap, Heart } from "lucide-react";
 
 const badges = [
-  { icon: Shield, label: "Secure payments via Ziina" },
+  { icon: Shield, label: "Secure sign-in & data" },
   { icon: Clock, label: "Fast start" },
   { icon: Users, label: "Real engagement" },
 ];
@@ -59,7 +59,7 @@ export default function HeroSection() {
                 transition={{ duration: 0.5, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
                 className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-4 leading-relaxed"
               >
-                Real followers, safe gradual delivery, premium checkout. Paste your profile link — we handle the rest.
+                Real followers, safe gradual delivery, simple ordering. Paste your profile link — we handle the rest.
               </motion.p>
 
               <motion.p

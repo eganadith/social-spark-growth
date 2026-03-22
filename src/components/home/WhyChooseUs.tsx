@@ -3,10 +3,10 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const reasons = [
   { icon: Shield, title: "100% Safe", desc: "We never ask for your password or sensitive information." },
-  { icon: Zap, title: "Fast Delivery", desc: "Orders start processing within minutes of payment." },
+  { icon: Zap, title: "Fast Delivery", desc: "Orders move into our queue as soon as you submit." },
   { icon: Users, title: "Real Engagement", desc: "Growth from genuine accounts, not bots." },
   { icon: HeadphonesIcon, title: "24/7 Support", desc: "Our team is always here to help you." },
-  { icon: Lock, title: "Secure Payments", desc: "Bank-grade encryption on every transaction." },
+  { icon: Lock, title: "Secure by design", desc: "HTTPS and secure sign-in — your social passwords are never required." },
   { icon: BarChart3, title: "Proven Results", desc: "Trusted by over 50,000 creators worldwide." },
 ];
 

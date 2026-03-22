@@ -16,7 +16,7 @@ const statusConfig: Record<
   OrderStatus,
   { label: string; color: string; icon: typeof Clock; progress: number }
 > = {
-  pending: { label: "Pending payment", color: "text-amber-400", icon: Clock, progress: 5 },
+  pending: { label: "Order received", color: "text-amber-400", icon: Clock, progress: 5 },
   paid: { label: "Paid", color: "text-sky-400", icon: CreditCard, progress: 25 },
   processing: { label: "Processing", color: "text-violet-400", icon: Package, progress: 55 },
   completed: { label: "Completed", color: "text-emerald-400", icon: CheckCircle2, progress: 100 },
@@ -28,8 +28,6 @@ export default function TrackPage() {
   const [order, setOrder] = useState<TrackOrderPayload | null>(null);
   const [searched, setSearched] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
-  const mock = params.get("mock") === "1";
-
   useEffect(() => {
     if (params.get("id")) void runSearch(params.get("id")!.trim());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,11 +86,6 @@ export default function TrackPage() {
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                 Enter your tracking ID from your confirmation email or receipt.
               </p>
-              {mock && (
-                <p className="mt-3 text-xs text-amber-400/90">
-                  Demo mode: complete a test order to see status here when Ziina is not configured.
-                </p>
-              )}
             </div>
 
             {!isSupabaseConfigured && (

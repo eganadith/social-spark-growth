@@ -7,22 +7,16 @@
 
 project_id = "pecwhbsaxfikglxppcyc"
 
+# Same as pro-run-store: gateway does not require JWT; functions still verify the user in code.
+[functions.create-ziina-payment]
+verify_jwt = false
+
+[functions.sync-ziina-payment]
+verify_jwt = false
+
 [db.seed]
 enabled = true
 sql_paths = ["./seed/seed_packages.sql"]
 
 [api]
 enabled = true
-
-# Per-function JWT verification (CLI v1.200+ — do not set a bare `[functions] verify_jwt = bool`; it breaks deploy).
-[functions.create-payment]
-verify_jwt = true
-
-[functions.webhook-handler]
-verify_jwt = false
-
-[functions.poll-pending-payments]
-verify_jwt = false
-
-[functions.check-payment-once]
-verify_jwt = true

@@ -1,4 +1,4 @@
--- Client-side inserts (e.g. optional VITE_MOCK_CHECKOUT demo) and dashboard reads need table-level
+-- Client-side order inserts and dashboard reads need table-level
 -- privileges; RLS still restricts which rows are visible.
 
 grant select, insert, update on table public.profiles to authenticated;

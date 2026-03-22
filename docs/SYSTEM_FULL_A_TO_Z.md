@@ -7,16 +7,15 @@ This document is for **validating architecture**: what the app does end-to-end, 
 ## Table of contents
 
 1. [High-level architecture](#1-high-level-architecture)
-2. [Request path: anonymous visitor → paid order](#2-request-path-anonymous-visitor--paid-order)
+2. [Request path: anonymous visitor → order](#2-request-path-anonymous-visitor--order)
 3. [Authentication and session (deep dive)](#3-authentication-and-session-deep-dive)
 4. [Authorization: user vs admin](#4-authorization-user-vs-admin)
 5. [Database, RLS, and RPCs](#5-database-rls-and-rpcs)
 6. [Edge Functions](#6-edge-functions)
-7. [Payments (Ziina) and webhooks](#7-payments-ziina-and-webhooks)
-8. [Referrals and rewards](#8-referrals-and-rewards)
-9. [Known loopholes, risks, and “is this wrong?”](#9-known-loopholes-risks-and-is-this-wrong)
-10. [Checklist: is the architecture “right”?](#10-checklist-is-the-architecture-right)
-11. [Related docs](#11-related-docs)
+7. [Referrals and rewards](#7-referrals-and-rewards)
+8. [Known loopholes, risks, and “is this wrong?”](#8-known-loopholes-risks-and-is-this-wrong)
+9. [Checklist: is the architecture “right”?](#9-checklist-is-the-architecture-right)
+10. [Related docs](#10-related-docs)
 
 ---
 
@@ -28,26 +27,22 @@ This document is for **validating architecture**: what the app does end-to-end, 
 | **Supabase Auth** | Email/password users, JWTs, `app_metadata` (e.g. `role: admin`). |
 | **Postgres + RLS** | Data for profiles, packages, orders, referrals, rewards. Policies restrict reads/writes per user (and admin via `is_admin()`). |
 | **RPCs (`security definer`)** | Controlled bypass of RLS for **safe, narrow** operations (e.g. public track lookup, referral code → profile id). |
-| **Edge Functions (Deno)** | **`create-payment`**: trusted server logic + Ziina + inserts orders with **service role**. **`webhook-handler`**: Ziina callbacks, updates orders + referral/rewards with service role. |
+| **Edge Functions (Deno)** | **None** in this repo for checkout — orders are inserted by the authenticated client subject to RLS. |
 
-**Correct pattern:** anything that must not be forgeable by the client (price, payment intent, order creation for paid flow) is done in **Edge Functions** or **webhooks**, not by trusting client-submitted amounts.
+**Trust note:** `orders.amount` is written from the client using the selected package’s displayed price. For stricter pricing, add a **security definer** RPC or Edge Function that copies `amount` from `packages` by `package_id` server-side.
 
 ---
 
-## 2. Request path: anonymous visitor → paid order
+## 2. Request path: anonymous visitor → order
 
 1. **Landing** (`/`): marketing, `PackagesSection` loads `packages` (public read via RLS).
 2. **`?ref=CODE`**: `ReferralCapture` stores the code in **localStorage** (`socioly_pending_ref`) until signup/login ([`src/lib/referralStorage.ts`](../src/lib/referralStorage.ts)).
-3. **Order** (`/order`): if **not signed in**, React Router **`Navigate`** sends user to `/auth?next=<encoded /order URL>` ([`OrderPage.tsx`](../src/pages/OrderPage.tsx)).
+3. **Order** (`/order`): if **not signed in**, user is sent to `/auth?next=<encoded /order URL>` ([`OrderPage.tsx`](../src/pages/OrderPage.tsx)).
 4. **Auth** (`/auth`): `signUp` / `signIn` via Supabase. On success, navigates to `next` (default `/dashboard`).
 5. **Referral attach**: [`useAuth`](../src/hooks/useAuth.ts) runs `applyPendingReferral` after session is available — RPC `get_profile_id_by_referral_code`, then `profiles.update({ referred_by })` if allowed.
-6. **Pay (production)**:
-   - Client refreshes session, invokes **`create-payment`** with **Bearer access_token**.
-   - Function validates user, loads **package price from DB**, inserts **pending** order, calls Ziina, returns **`checkoutUrl`**; browser redirects to Ziina.
-7. **After Ziina**: user returns to `success_url` / etc. **Order status** updates from **`webhook-handler`**, not from the return URL alone.
-8. **Track** (`/track?id=…`): **public** RPC `get_order_by_tracking` returns a JSON payload (no direct table read for anon).
-
-**Dev mock (optional):** `VITE_MOCK_CHECKOUT=true` skips Ziina and inserts a **pending** order via the client + track. **Default local dev** uses real `create-payment` → Ziina. **Do not enable mock in production.**
+6. **Submit order:** signed-in user completes step 2 (terms), client **inserts** a **pending** `orders` row (`package_id`, `amount` from selected package UI, `tracking_id`, `idempotency_key`) and navigates to **`/track?id=…`**.
+7. **Track** (`/track?id=…`): **public** RPC `get_order_by_tracking` returns a JSON payload (no direct table read for anon).
+8. **Status beyond pending:** today updated via **Admin** or direct DB — there is **no** payment webhook in this repo.
 
 ---
 
@@ -71,7 +66,7 @@ This document is for **validating architecture**: what the app does end-to-end, 
 | After confirm, land on home not `/order` | Sign-up path discards `next` when there’s no session (by design today); user should use link with `next` again or open Order manually. |
 | “Invalid login credentials” | Wrong password, unconfirmed email, or typo. |
 | Instant log-out / empty session | Wrong project URL/key, third-party cookies blocked (rare), clock skew (rare), or custom domain misconfiguration in Supabase Auth URL settings. |
-| API calls 401 from Edge Function | **Expired access token** — app mitigates with `refreshSession()` before `functions.invoke` on pay; if you add other invokes, refresh there too. |
+| API calls 401 from Edge Function | N/A unless you add functions; use `refreshSession()` before `functions.invoke` if you do. |
 | RLS errors on `profiles` / `orders` | User not logged in, or JWT not attached to client, or policy intentionally denies (e.g. not admin). |
 
 ### Session + `next` preservation
@@ -121,41 +116,20 @@ This document is for **validating architecture**: what the app does end-to-end, 
 
 ## 6. Edge Functions
 
-| Function | JWT | Role |
-|----------|-----|------|
-| **`create-payment`** | **Required** (`verify_jwt = true` in [`config.toml`](../supabase/config.toml)) | Runs as user for `getUser()`, **service role** for DB + Ziina. |
-| **`webhook-handler`** | **No JWT** (Ziina POST) | Validates **HMAC** if `ZIINA_WEBHOOK_SECRET` set; uses service role. |
-
-**Secrets:** use [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) — hosted projects inject `SUPABASE_*` including service role; set **`ZIINA_API_KEY`**, **`PUBLIC_SITE_URL`**, webhook secret, etc., explicitly.
+None are required for the default product flow. See [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md).
 
 ---
 
-## 7. Payments (Ziina) and webhooks
-
-1. **`create-payment`** builds Ziina **Payment Intent** (amount in fils, success/cancel/failure URLs, optional `test`).
-2. User pays on Ziina; **Ziina** calls **`webhook-handler`**.
-3. Handler updates **`orders`** by `payment_id`, maps Ziina status → internal `status` / `progress`.
-4. Referral/reward side effects run when order maps to **paid** path (see [`webhook-handler/index.ts`](../supabase/functions/webhook-handler/index.ts)).
-
-**Production requirement:**
-
-- **`ZIINA_WEBHOOK_SECRET`** must be set: `webhook-handler` returns **503** if missing, and [`verifyZiinaWebhook`](../supabase/functions/_shared/ziina.ts) rejects unsigned bodies.
-- Webhook URL must be **registered in Ziina** and match your deployed `webhook-handler` URL.
-
----
-
-## 8. Referrals and rewards
+## 7. Referrals and rewards
 
 **Intended flow**
 
 1. Visitor stores `?ref=` → signs up/logs in → `useAuth` sets `referred_by` **once** (if RPC finds referrer and not self and not already referred).
-2. On **first paid** order (webhook maps to **paid**), handler inserts **`referrals`** row and may **upsert `rewards`** for the referrer based on counts ([`_shared/rewards.ts`](../supabase/functions/_shared/rewards.ts), mirrored in [`rewardMilestones.ts`](../src/lib/rewardMilestones.ts)).
-
-**Ziina → order status mapping note:** the webhook maps some Ziina terminal states to internal `paid` / `processing` / `pending` ([`mapZiinaIntentStatus`](../supabase/functions/webhook-handler/index.ts)). **`completed` (business “fulfilled”)** may still be a **manual admin** step depending on how you use `orders.status` in the UI — verify this matches your ops process.
+2. **Referral rows / reward unlocks** after orders are **not** automated by Edge Functions in this repo. Milestone definitions for the UI live in [`rewardMilestones.ts`](../src/lib/rewardMilestones.ts); you can wire `referrals` / `rewards` inserts via Admin, SQL, or a future backend job.
 
 ---
 
-## 9. Known loopholes, risks, and “is this wrong?”
+## 8. Known loopholes, risks, and “is this wrong?”
 
 These are **honest architectural gaps** to review — not an exhaustive penetration test.
 
@@ -167,54 +141,48 @@ These are **honest architectural gaps** to review — not an exhaustive penetrat
 ### B. Public track RPC (patched)
 
 - `get_order_by_tracking` returns only **`tracking_id`**, **`status`**, **`progress`**, **`created_at`** — no profile link, amount, or package fields.
-- New orders use a **full UUID** `tracking_id` (stronger than the old short `SL-…` prefix).
+- `tracking_id` is a short `SL-…` style id suitable for support lookup; treat as an identifier, not a secret.
 
 ### C. Admin UI is not a security boundary
 
 - Non-admins can **open `/admin`** and see the “admin only” message; **data** still must fail RLS (it does, if policies are deployed).
 
-### D. `VITE_MOCK_CHECKOUT`
+### D. Double-submit / duplicate orders
 
-- If accidentally enabled in production, users could create **pending** orders without payment. **Treat as dangerous config.**
+- User can click submit twice quickly → **two** pending orders possible unless `idempotency_key` unique constraint surfaces an error. **Roadmap:** clearer UX on duplicate key.
 
-### E. Double-submit / duplicate orders
-
-- User can click Pay twice quickly → **two** pending orders / two intents possible. **Roadmap** item in [ARCHITECTURE.md](./ARCHITECTURE.md): idempotency / UI debounce.
-
-### F. Email confirmation + referral
+### E. Email confirmation + referral
 
 - If user signs up with confirmation, **`applyPendingReferral` on first `getSession`** may run **before** they confirm — **no user** yet. After confirmation and first login, referral application runs again — **usually OK** if code still in localStorage.
 
-### G. Client-side metadata
+### F. Client-side metadata
 
 - **`app_metadata.role`** is visible in the JWT in the browser. That’s normal; **changing** it without Supabase’s keys does not bypass RLS.
 
 ---
 
-## 10. Checklist: is the architecture “right”?
+## 9. Checklist: is the architecture “right”?
 
 Use this as a yes/no review with your team.
 
 | Question | “Right” for this codebase |
 |----------|---------------------------|
-| Are prices ever taken only from the client? | **No** — `create-payment` loads **`packages.price`** server-side. ✓ |
+| Are prices enforced server-side on insert? | **No** — client sends `amount`; tighten with RPC/Edge if you need anti-tamper pricing. |
 | Is service role ever in `VITE_*`? | **No** ✓ |
-| Are paid order state transitions driven by webhook? | **Yes** (Ziina → `webhook-handler`) ✓ |
+| Are order state transitions automated by payment webhooks? | **No** in this repo — use Admin / custom automation. |
 | Is admin enforced server-side? | **Yes** (`is_admin()` in RLS) ✓ |
-| Is referral attribution only via `claim_referral` / `?ref=`? | **Enforced in DB** — direct `referred_by` updates blocked for users; see [§9A](#9-known-loopholes-risks-and-is-this-wrong). |
-| Is webhook signature required in prod? | **Should be** — otherwise forgeable ([§7](#7-payments-ziina-and-webhooks)). |
-| Is public track lookup acceptable exposure? | **Product decision** — see [§9B](#9-known-loopholes-risks-and-is-this-wrong). |
+| Is referral attribution only via `claim_referral` / `?ref=`? | **Enforced in DB** — direct `referred_by` updates blocked for users; see [§8](#8-known-loopholes-risks-and-is-this-wrong). |
+| Is public track lookup acceptable exposure? | **Product decision** — see [§8B](#8-known-loopholes-risks-and-is-this-wrong). |
 
 ---
 
-## 11. Related docs
+## 10. Related docs
 
 | Doc | Use |
 |-----|-----|
 | [WEBSITE.md](./WEBSITE.md) | Routes, env tables, troubleshooting |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | UX/SEO roadmap + current feature matrix |
-| [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) | Deploy, `project_id`, secrets |
-| [ZIINA.md](./ZIINA.md) | Payment intent + webhook registration |
+| [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) | Edge Functions note |
 | [../supabase/README.md](../supabase/README.md) | Link, seed, CLI |
 
 ---

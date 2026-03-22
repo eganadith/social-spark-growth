@@ -13,8 +13,6 @@ import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import CheckEmailPage from "./pages/CheckEmailPage";
 import DashboardPage from "./pages/DashboardPage";
-import PaymentSuccessPage from "./pages/PaymentSuccessPage";
-import PaymentFailedPage from "./pages/PaymentFailedPage";
 import ReferralCapture from "./components/ReferralCapture";
 import ScrollToHash from "./components/ScrollToHash";
 import StickyGrowthCta from "./components/StickyGrowthCta";
@@ -22,6 +20,8 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
 import DeliveryPage from "./pages/DeliveryPage";
+import PaymentSuccessPage from "./pages/PaymentSuccessPage";
+import PaymentCancelPage from "./pages/PaymentCancelPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,13 +43,13 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/check-email" element={<CheckEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/payment-success" element={<PaymentSuccessPage />} />
-            <Route path="/payment-failed" element={<PaymentFailedPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/refund" element={<RefundPage />} />
             <Route path="/delivery" element={<DeliveryPage />} />
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/payment/cancel" element={<PaymentCancelPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

@@ -13,8 +13,8 @@ const content = [
     body: "Users must be 13 years or older to use Socioly. You must provide accurate social media profile links.",
   },
   {
-    heading: "3. Order & Payment",
-    body: "Orders are processed after successful payment via Ziina (https://ziina.com/), a UAE-licensed payment gateway. By ticking the Terms & Conditions box at checkout, you confirm that you understand the service and agree to pay for the selected package. Prices are subject to change; all charges are displayed before payment.",
+    heading: "3. Orders & pricing",
+    body: "By placing an order and ticking the Terms & Conditions box, you confirm that you understand the service and agree to the package and price shown. Prices are in AED and may change; the total in your order summary applies at the time you submit. Fulfillment timelines are described in our Delivery Policy.",
   },
   {
     heading: "4. Delivery",
@@ -26,7 +26,7 @@ const content = [
   },
   {
     heading: "6. Referral & Rewards",
-    body: "Referral rewards are granted when referred users successfully complete paid orders. Self-referrals are prohibited and will void any rewards.",
+    body: "Referral rewards are granted when referred users successfully complete qualifying orders. Self-referrals are prohibited and will void any rewards.",
   },
   {
     heading: "7. Limitation of Liability",

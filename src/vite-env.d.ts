@@ -5,8 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_ANON_KEY?: string;
   /** Canonical site URL (e.g. https://your-app.netlify.app) for email confirmation redirects. */
   readonly VITE_SITE_URL?: string;
-  /** Dev only: "true" = skip Ziina, pending order + track (never for real payment tests). */
-  readonly VITE_MOCK_CHECKOUT?: string;
+  /** When true, Ziina checkout runs in test mode (same pattern as pro-run-store). */
+  readonly VITE_PAYMENT_TEST_MODE?: string;
 }
 
 interface ImportMeta {

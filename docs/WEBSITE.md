@@ -6,7 +6,7 @@ This document describes the **Socioly** web app (repo title: *Social Spark Growt
 
 ## 1. Product overview
 
-Socioly is a **marketing + checkout** site for **social media growth packages** (Instagram, Facebook, TikTok). Visitors browse plans on the home page, place orders with a profile URL, pay via **Ziina** (hosted checkout), and **track** order status. Logged-in users get a **dashboard** with order history, a **referral link**, and **reward codes** earned from referrals. **Admins** manage orders, profiles, referrals, and rewards in an internal **Admin** console.
+Socioly is a **marketing + order** site for **social media growth packages** (Instagram, Facebook, TikTok). Visitors browse plans on the home page, place orders with a profile URL (in-app submit → **pending** order + **tracking ID**), and **track** order status. Logged-in users get a **dashboard** with order history, a **referral link**, and **reward codes**. **Admins** manage orders, profiles, referrals, and rewards in an internal **Admin** console.
 
 ---
 
@@ -18,8 +18,7 @@ Socioly is a **marketing + checkout** site for **social media growth packages** 
 | Styling | Tailwind CSS, shadcn/ui, Radix primitives |
 | Routing | React Router v6 |
 | Data / auth | Supabase (Postgres, Row Level Security, Auth) |
-| Serverless | Supabase Edge Functions (Deno) |
-| Payments | Ziina Payment Intents + webhook |
+| Serverless | Optional Supabase Edge Functions (none required for checkout) |
 | Hosting (example) | Netlify (static `dist/`, `bun run build`) |
 
 ---
@@ -31,7 +30,7 @@ Global chrome: **Navbar**, **Footer**, **WhatsApp** floating button, **sticky gr
 | Path | Page | Purpose |
 |------|------|---------|
 | `/` | Home (`Index`) | Marketing + packages grid |
-| `/order` | Order | Select package (or preselected), enter profile URL, checkout |
+| `/order` | Order | Select package (or preselected), enter profile URL, review & submit |
 | `/track` | Track | Look up order by tracking ID |
 | `/auth` | Auth | Sign in / sign up (`?next=` redirect; `socioly_next` in localStorage preserves checkout return) |
 | `/check-email` | Check email | After signup when confirmation required — resume link to sign-in with `?next=` |
@@ -64,19 +63,18 @@ Assets live under `public/Images/` where referenced.
 
 ## 5. Order flow (`/order`)
 
-- User must be **signed in** for full checkout; unauthenticated users are redirected to `/auth` with `next` preserved.  
+- User must be **signed in** to submit; unauthenticated users are redirected to `/auth` with `next` preserved.  
 - **Package** can come from the catalog (`package_id` query param) or user selection.  
-- Collects **profile link** (and optional email where the form requires it).  
-- **Production:** calls Edge Function **`create-payment`** with `package_id`, `profile_link`, `email`. Function creates/updates the order and returns a **Ziina checkout URL**; browser redirects there.  
-- **Local payment tests:** use `create-payment` → Ziina (set Edge `PUBLIC_SITE_URL` to your Vite origin). **Mock:** if `VITE_MOCK_CHECKOUT=true`, skips Ziina and creates a **pending** order only — **not for production**.  
-- Errors such as “Failed to send a request to the Edge Function” usually mean **`create-payment` is not deployed** or env points at the wrong Supabase project. See [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md).
+- Collects **profile link** and **email**.  
+- **Submit:** authenticated client **inserts** into `orders` (`status: pending`, `tracking_id`, `idempotency_key`) then navigates to **`/track?id=…`**.  
+- **Billing / payment** is out of scope for this repo — coordinate via WhatsApp, invoice, or a gateway you add later.
 
 ---
 
 ## 6. Track order (`/track`)
 
 - Public lookup by **tracking ID** via RPC `get_order_by_tracking` — returns **status, progress, created_at** only (no profile link or amount).  
-- New checkouts use a **UUID** tracking id; older `SL-…` ids still resolve if present in the database.
+- Tracking IDs use the `SL-…` format generated on submit; they must match a row in `orders.tracking_id`.
 
 ---
 
@@ -122,9 +120,7 @@ Reward detail uses **RewardModal**.
 
 1. Each **profile** has a **`referral_code`**.  
 2. New visitors land with **`?ref=CODE`**; `ReferralCapture` stores the code; after signup/login, `useAuth` links **`referred_by`** when valid.  
-3. When a referred user **pays** (webhook flow), the backend can record referrals and unlock **rewards** per thresholds in `supabase/functions/_shared/rewards.ts` (aligned with `REWARD_MILESTONES` on the client).
-
-Details of payment ↔ webhook ↔ DB updates: see **`webhook-handler`** and [ZIINA.md](./ZIINA.md).
+3. **Referral rewards** when friends order are **not** auto-wired in this repo; milestone copy in the dashboard uses `REWARD_MILESTONES` in `src/lib/rewardMilestones.ts`. Implement recording in Admin, SQL, or your own backend as needed.
 
 ---
 
@@ -150,16 +146,7 @@ TypeScript types for app usage: `src/types/database.ts` (`DbPackage`, `DbOrderRo
 
 ## 12. Edge Functions
 
-| Function | Role |
-|----------|------|
-| **`create-payment`** | Authenticated POST: validates user, loads package price, creates order / payment intent, returns Ziina checkout URL |
-| **`webhook-handler`** | POST from Ziina: verifies signature, updates order status, referral/reward logic |
-
-Shared code: `supabase/functions/_shared/` (`ziina.ts`, `supabase.ts`, `rewards.ts`).
-
-**Secrets** (set in Supabase, not in the repo): `SUPABASE_SERVICE_ROLE_KEY`, `ZIINA_API_KEY`, `PUBLIC_SITE_URL`, optional `ZIINA_WEBHOOK_SECRET`, `ZIINA_TEST`, `ZIINA_API_BASE`.  
-
-Deploy: `npm run functions:deploy` after `supabase link`. Full checklist: [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md).
+None are shipped for payments. See [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) if you add functions later.
 
 ---
 
@@ -171,24 +158,13 @@ Deploy: `npm run functions:deploy` after `supabase link`. Full checklist: [EDGE_
 |----------|----------|---------|
 | `VITE_SUPABASE_URL` | Yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon (public) key |
-| `VITE_MOCK_CHECKOUT` | No | `true` = dev-only skip Ziina (pending order + track) |
+| `VITE_SITE_URL` | Recommended (production) | Canonical HTTPS origin for auth email redirects |
 
 ### Local / CI helpers (not bundled unless `VITE_` prefixed)
 
 | Variable | Purpose |
 |----------|---------|
 | `SUPABASE_DB_PASSWORD` | Optional; some CLI operations |
-
-### Supabase Edge Functions (Dashboard or `supabase secrets set`)
-
-| Secret | Purpose |
-|--------|---------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin client inside functions |
-| `ZIINA_API_KEY` | Ziina API |
-| `PUBLIC_SITE_URL` | Redirects / success URLs (no trailing slash) |
-| `ZIINA_WEBHOOK_SECRET` | Webhook HMAC verification |
-| `ZIINA_TEST` | Optional sandbox-style behavior |
-| `ZIINA_API_BASE` | Optional API override |
 
 Template: [.env.example](../.env.example).
 
@@ -204,7 +180,6 @@ npm run dev
 ```
 
 - Apply migrations and seed as in [README.md](../README.md).  
-- For real payment tests locally: deploy `create-payment`, set `PUBLIC_SITE_URL=http://localhost:5173` (or your port). DB-only: `VITE_MOCK_CHECKOUT=true`.  
 - Lint: `npm run lint`  
 - Tests: `npm run test`  
 - Production build: `npm run build` / `npm run preview`
@@ -217,7 +192,7 @@ npm run dev
 - **Publish:** `dist/`  
 - Set **`VITE_SUPABASE_URL`** and **`VITE_SUPABASE_ANON_KEY`** in Netlify environment.  
 - **Secrets scan:** `SECRETS_SCAN_OMIT_KEYS` includes the two `VITE_SUPABASE_*` keys because Vite inlines them by design; the anon key is public and protected by RLS.  
-- Do **not** set `SUPABASE_SERVICE_ROLE_KEY` or `ZIINA_API_KEY` as `VITE_*` — they belong only on Supabase Edge Functions (or a real backend).
+- Do **not** set `SUPABASE_SERVICE_ROLE_KEY` as `VITE_*` — it must never ship in the browser bundle.
 
 ---
 
@@ -230,17 +205,15 @@ src/
   components/             # Shared UI, home sections, modals, referral, etc.
   hooks/                  # useAuth, usePackages
   lib/                    # supabaseClient, store, referralStorage, rewardMilestones
-  pages/                  # Index, Order, Track, Auth, Dashboard, Admin, policies, NotFound
+  pages/                  # Index, Order, Track, Auth, Dashboard, Admin, policies, NotFound (no payment return URLs)
   types/database.ts
 public/                   # Static assets
 supabase/
   migrations/
   seed/
-  functions/
 docs/
   WEBSITE.md              # This file
   EDGE_FUNCTIONS.md
-  ZIINA.md
 netlify.toml
 ```
 
@@ -251,7 +224,7 @@ netlify.toml
 | Symptom | Likely cause | Action |
 |---------|----------------|--------|
 | Packages empty / load error | Migrations or `api_grants` missing; no seed | Run migrations + seed; see README |
-| Payment could not start / Edge Function error | `create-payment` not deployed or wrong project | [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) |
+| Order submit fails (RLS / insert) | Policies or grants missing | Re-run migrations including `orders` insert grants |
 | Admin shows “Admin only” | No `role` in app metadata | Set `raw_app_meta_data.role = "admin"`, refresh session |
 | Netlify build fails on secrets scan | Scanner sees `VITE_*` in `dist` | `netlify.toml` omit keys (already in repo) |
 | Referral not attaching | Invalid code, self-referral, or already referred | Check RPC + profile `referred_by` |
@@ -263,8 +236,7 @@ netlify.toml
 - [SYSTEM_FULL_A_TO_Z.md](./SYSTEM_FULL_A_TO_Z.md) — end-to-end flows, auth/session pitfalls, RLS vs Edge Functions, known gaps (architecture review)  
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — full architecture, flows, UX/SEO roadmap (polished)  
 - [README.md](../README.md) — quick start and Supabase checklist  
-- [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) — deploy functions and secrets  
-- [ZIINA.md](./ZIINA.md) — payment provider and webhook  
+- [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) — Edge Functions note  
 - [supabase/README.md](../supabase/README.md) — CLI, link, seed  
 
 ---
