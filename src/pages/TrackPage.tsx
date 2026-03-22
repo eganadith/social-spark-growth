@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
+import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import type { OrderStatus, TrackOrderPayload } from "@/types/database";
 import { Search, Package, Clock, CheckCircle2, AlertCircle, CreditCard } from "lucide-react";
 import ReferralCelebrationDialog, {
@@ -18,12 +20,14 @@ const statusConfig: Record<
 > = {
   pending: { label: "Order received", color: "text-amber-400", icon: Clock, progress: 5 },
   paid: { label: "Paid", color: "text-sky-400", icon: CreditCard, progress: 25 },
+  failed: { label: "Payment issue", color: "text-red-400", icon: AlertCircle, progress: 5 },
   processing: { label: "Processing", color: "text-violet-400", icon: Package, progress: 55 },
   completed: { label: "Completed", color: "text-emerald-400", icon: CheckCircle2, progress: 100 },
 };
 
 export default function TrackPage() {
   const [params] = useSearchParams();
+  const { user } = useAuth();
   const [trackingId, setTrackingId] = useState(params.get("id") || "");
   const [order, setOrder] = useState<TrackOrderPayload | null>(null);
   const [searched, setSearched] = useState(false);
@@ -37,6 +41,40 @@ export default function TrackPage() {
     if (!shouldShowReferralPrompt(order.tracking_id)) return;
     setReferralOpen(true);
   }, [order]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !user || !order || order.status !== "pending") return;
+    const tid = order.tracking_id;
+    let cancelled = false;
+    (async () => {
+      const sb = getSupabase();
+      const { data: row } = await sb
+        .from("orders")
+        .select("id, payment_id, status")
+        .eq("tracking_id", tid)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || !row?.payment_id || row.status !== "pending") return;
+      try {
+        await invokeAuthedFunction<{ verified?: boolean }>("verify-payment", {
+          order_id: row.id,
+          payment_intent_id: row.payment_id,
+        });
+      } catch {
+        /* Ziina may still be pending; user can refresh */
+      }
+      if (!cancelled) {
+        const { data, error } = await getSupabase().rpc("get_order_by_tracking", { p_tracking_id: tid });
+        if (!cancelled) {
+          if (error) setOrder(null);
+          else setOrder(data as TrackOrderPayload | null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [order?.tracking_id, order?.status, user?.id]);
 
   async function runSearch(id: string) {
     if (!isSupabaseConfigured) {

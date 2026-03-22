@@ -1,5 +1,22 @@
-# Edge Functions
+# Edge Functions (Ziina checkout + verification)
 
-This project **does not ship Supabase Edge Functions** for checkout or payments. Orders are inserted from the browser (authenticated) into `orders` with status `pending` and a `tracking_id`.
+Functions live under `supabase/functions/`. **`supabase/config.toml`** sets `verify_jwt = false` for these functions so the gateway does not reject requests before your code runs; each function still validates the user with `Authorization: Bearer <access_token>` and `auth.getUser()`.
 
-If you add new functions later, link the CLI and deploy per [Supabase Edge Functions](https://supabase.com/docs/guides/functions).
+| Function | Purpose |
+|----------|---------|
+| `create-ziina-payment` | Creates a Ziina Payment Intent; stores `payment_id` and `checkout_redirect_url` on the order. |
+| `verify-payment` | Server-side Ziina GET + amount check; sets order `paid`, `payment_verified_at`; sends Resend confirmation email when configured. |
+
+## Deploy (same Supabase project as `VITE_SUPABASE_URL`)
+
+```bash
+npx supabase link --project-ref <YOUR_PROJECT_REF>
+npx supabase functions deploy create-ziina-payment
+npx supabase functions deploy verify-payment
+```
+
+After deploy, in **Dashboard → Edge Functions → [function] → Details**, confirm **Verify JWT** is off for those functions (matches `verify_jwt = false` in config).
+
+## Secrets
+
+Set in **Project Settings → Edge Functions → Secrets** (or `supabase secrets set`). See [.env.example](../.env.example): `ZIINA_API_KEY`, `SITE_URL`, optional `ZIINA_TEST_MODE`, `RESEND_API_KEY`, `RESEND_FROM`.

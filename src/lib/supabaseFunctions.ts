@@ -1,13 +1,45 @@
+import { ensureSession } from "@/lib/authSession";
 import { getSupabase } from "@/lib/supabaseClient";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
-function readInvokeErrorMessage(error: unknown, data: unknown): string {
+function readDataErrorField(data: unknown): string | null {
+  if (data && typeof data === "object" && "error" in data) {
+    const e = (data as { error: unknown }).error;
+    if (typeof e === "string" && e.trim()) return e;
+  }
+  return null;
+}
+
+/** Non-2xx responses never populate `data`; the JSON body is still on `error.context` (Response). */
+async function messageFromFunctionsHttpError(error: FunctionsHttpError): Promise<string | null> {
+  const res = error.context;
+  if (!(res instanceof Response)) return null;
+  const ct = res.headers.get("Content-Type") ?? "";
+  try {
+    if (ct.includes("application/json")) {
+      const j: unknown = await res.clone().json();
+      const fromError = readDataErrorField(j);
+      if (fromError) return fromError;
+      if (j && typeof j === "object" && "message" in j && typeof (j as { message: unknown }).message === "string") {
+        const msg = (j as { message: string }).message;
+        if (msg.trim()) return msg;
+      }
+    } else {
+      const text = (await res.clone().text()).trim();
+      if (text) return text.slice(0, 500);
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function fallbackInvokeMessage(error: unknown, data: unknown): string {
+  const fromData = readDataErrorField(data);
+  if (fromData) return fromData;
   if (error && typeof error === "object" && "message" in error) {
     const m = (error as { message: string }).message;
     if (m) return m;
-  }
-  if (data && typeof data === "object" && "error" in data) {
-    const e = (data as { error: unknown }).error;
-    if (typeof e === "string") return e;
   }
   return "Request failed";
 }
@@ -18,11 +50,12 @@ export async function invokeAuthedFunction<T>(
   body: Record<string, unknown>,
 ): Promise<T> {
   const sb = getSupabase();
+  await ensureSession();
   const {
     data: { session },
   } = await sb.auth.getSession();
   if (!session?.access_token) {
-    throw new Error("Not signed in");
+    throw new Error("Not signed in — refresh the page and sign in again.");
   }
 
   const { data, error } = await sb.functions.invoke(name, {
@@ -31,18 +64,13 @@ export async function invokeAuthedFunction<T>(
   });
 
   if (error) {
-    let detail = readInvokeErrorMessage(error, data);
-    if (error && typeof error === "object" && "context" in error) {
-      const ctx = (error as { context?: { json?: () => Promise<unknown> } }).context;
-      if (ctx?.json) {
-        try {
-          const j = await ctx.json();
-          if (j && typeof j === "object" && "error" in j && typeof (j as { error: string }).error === "string") {
-            detail = (j as { error: string }).error;
-          }
-        } catch {
-          /* ignore */
-        }
+    let detail = fallbackInvokeMessage(error, data);
+    if (error instanceof FunctionsHttpError) {
+      const fromBody = await messageFromFunctionsHttpError(error);
+      if (fromBody) detail = fromBody;
+      const res = error.context;
+      if (res instanceof Response) {
+        detail = `${detail} (HTTP ${res.status})`;
       }
     }
     throw new Error(detail);

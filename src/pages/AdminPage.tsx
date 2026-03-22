@@ -19,11 +19,13 @@ type AdminOrder = {
   profile_link: string;
   email: string | null;
   user_id: string;
+  payment_id: string | null;
+  payment_verified_at: string | null;
   package: { name: string | null; platform: string; followers: number | null } | null;
 };
 
 function progressForStatus(s: OrderStatus): number {
-  if (s === "pending") return 5;
+  if (s === "pending" || s === "failed") return 5;
   if (s === "paid") return 25;
   if (s === "processing") return 55;
   return 100;
@@ -66,7 +68,7 @@ export default function AdminPage() {
         sb
           .from("orders")
           .select(
-            "id, tracking_id, status, progress, amount, created_at, profile_link, email, user_id, package:packages(name, platform, followers)",
+            "id, tracking_id, status, progress, amount, created_at, profile_link, email, user_id, payment_id, payment_verified_at, package:packages(name, platform, followers)",
           )
           .order("created_at", { ascending: false }),
         sb.from("profiles").select("id, email, referral_code, referred_by, created_at").order("created_at", { ascending: false }),
@@ -233,6 +235,7 @@ export default function AdminPage() {
                 <option value="all">All statuses</option>
                 <option value="pending">Pending</option>
                 <option value="paid">Paid</option>
+                <option value="failed">Failed</option>
                 <option value="processing">Processing</option>
                 <option value="completed">Completed</option>
               </select>
@@ -268,6 +271,8 @@ export default function AdminPage() {
                       "Platform",
                       "Package",
                       "AED",
+                      "Payment ID",
+                      "Verified at",
                       "Status",
                       "Quick actions",
                     ].map((h) => (
@@ -309,14 +314,34 @@ export default function AdminPage() {
                       <td className="px-4 py-3 capitalize">{o.package?.platform}</td>
                       <td className="px-4 py-3">{o.package?.name}</td>
                       <td className="px-4 py-3 font-medium">{o.amount}</td>
+                      <td className="px-4 py-3 font-mono text-[10px] max-w-[100px] truncate" title={o.payment_id ?? ""}>
+                        {o.payment_id ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {o.payment_verified_at ? new Date(o.payment_verified_at).toLocaleString() : "—"}
+                      </td>
                       <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            o.status === "paid"
+                              ? "border-sky-500/40 bg-sky-500/10 text-sky-400"
+                              : o.status === "pending"
+                                ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+                                : o.status === "failed"
+                                  ? "border-red-500/40 bg-red-500/10 text-red-400"
+                                  : "border-border bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {o.status}
+                        </span>
                         <select
                           value={o.status}
                           onChange={(e) => void handleOrderStatus(o.id, e.target.value as OrderStatus)}
-                          className="rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="mt-1 block w-full rounded-md border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                         >
                           <option value="pending">Pending</option>
                           <option value="paid">Paid</option>
+                          <option value="failed">Failed</option>
                           <option value="processing">Processing</option>
                           <option value="completed">Completed</option>
                         </select>

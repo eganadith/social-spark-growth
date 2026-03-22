@@ -6,9 +6,9 @@ export function buildZiinaPaymentBody(orderId: string): Record<string, unknown> 
   const q = encodeURIComponent(orderId);
   const base: Record<string, unknown> = {
     order_id: orderId,
-    success_url: `${origin}/payment/success?order_id=${q}`,
-    cancel_url: `${origin}/payment/cancel?order_id=${q}`,
-    failure_url: `${origin}/payment/cancel?order_id=${q}`,
+    success_url: `${origin}/success?order_id=${q}`,
+    cancel_url: `${origin}/cancel`,
+    failure_url: `${origin}/cancel`,
   };
   if (isPaymentTestMode()) base.test = true;
   return base;

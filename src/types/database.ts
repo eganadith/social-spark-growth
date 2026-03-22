@@ -10,7 +10,7 @@ export type DbPackage = {
   premium: boolean;
 };
 
-export type OrderStatus = "pending" | "paid" | "processing" | "completed";
+export type OrderStatus = "pending" | "paid" | "failed" | "processing" | "completed";
 
 export type DbOrderRow = {
   id: string;
@@ -29,6 +29,7 @@ export type DbOrderRow = {
   /** Package platform snapshot (instagram | facebook | tiktok). */
   service_type?: string | null;
   paid_at?: string | null;
+  payment_verified_at?: string | null;
   /** When set, UI shows 72h fulfillment countdown until this instant. */
   fulfillment_deadline_at?: string | null;
   start_time?: string | null;

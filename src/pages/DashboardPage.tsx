@@ -85,6 +85,7 @@ function statusStyles(status: string): string {
   if (s === "completed") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/25";
   if (s === "processing" || s === "paid") return "bg-sky-500/15 text-sky-400 border-sky-500/25";
   if (s === "pending") return "bg-amber-500/15 text-amber-400 border-amber-500/25";
+  if (s === "failed") return "bg-red-500/15 text-red-400 border-red-500/25";
   return "bg-muted text-muted-foreground border-border";
 }
 

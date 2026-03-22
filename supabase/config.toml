@@ -11,7 +11,7 @@ project_id = "pecwhbsaxfikglxppcyc"
 [functions.create-ziina-payment]
 verify_jwt = false
 
-[functions.sync-ziina-payment]
+[functions.verify-payment]
 verify_jwt = false
 
 [db.seed]

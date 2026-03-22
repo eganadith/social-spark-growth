@@ -20,6 +20,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
 import DeliveryPage from "./pages/DeliveryPage";
+import SuccessPage from "./pages/SuccessPage";
 import PaymentSuccessPage from "./pages/PaymentSuccessPage";
 import PaymentCancelPage from "./pages/PaymentCancelPage";
 import NotFound from "./pages/NotFound";
@@ -48,7 +49,9 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/refund" element={<RefundPage />} />
             <Route path="/delivery" element={<DeliveryPage />} />
+            <Route path="/success" element={<SuccessPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/cancel" element={<PaymentCancelPage />} />
             <Route path="/payment/cancel" element={<PaymentCancelPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

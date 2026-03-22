@@ -2,6 +2,12 @@
   command = "bun run build"
   publish = "dist"
 
+# SPA: client-side routes (e.g. /dashboard) must serve index.html — avoids Netlify’s default 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
 # Vite embeds public env vars into JS under dist/. Skip that output in Netlify’s secrets scan.
 # Never paste the same string as site env SECRETS_SCAN_OMIT_KEYS into this file (build will fail).
 [build.environment]

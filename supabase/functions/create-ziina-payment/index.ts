@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
 
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .select("id, user_id, status, amount, payment_id, checkout_redirect_url")
+    .select("id, user_id, status, amount, payment_id, checkout_redirect_url, email")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
       failureUrl = cancelUrl;
     }
   } else if (siteUrlRaw) {
-    successUrl = `${siteUrlRaw}/payment/success?order_id=${encodeURIComponent(order.id)}`;
-    cancelUrl = `${siteUrlRaw}/payment/cancel?order_id=${encodeURIComponent(order.id)}`;
+    successUrl = `${siteUrlRaw}/success?order_id=${encodeURIComponent(order.id)}`;
+    cancelUrl = `${siteUrlRaw}/cancel`;
     failureUrl = cancelUrl;
   } else {
     return jsonResponse(
@@ -169,13 +169,18 @@ Deno.serve(async (req) => {
 
   const testMode = body.test === true || Deno.env.get("ZIINA_TEST_MODE") === "true";
 
+  const orderEmail =
+    typeof order.email === "string" && order.email.trim() ? order.email.trim() : user.email ?? "";
+  const msgRaw = `Order #${order.id} | ${orderEmail || "customer"}`;
+  const message = msgRaw.length > 500 ? `${msgRaw.slice(0, 497)}...` : msgRaw;
+
   const ziinaBody: Record<string, unknown> = {
     amount: fils,
     currency_code: "AED",
     success_url: successUrl,
     cancel_url: cancelUrl,
     failure_url: failureUrl,
-    message: "Socioly order",
+    message,
     ...(testMode ? { test: true } : {}),
   };
 
