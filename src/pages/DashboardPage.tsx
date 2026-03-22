@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { format } from "date-fns";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
+import { setCheckoutContext, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
 import { ensureSession } from "@/lib/authSession";
 import type { DbReward } from "@/types/database";
 import {
@@ -95,6 +96,7 @@ function platformLabel(p: string | undefined): string {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { user, loading, signOut, isConfigured } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -178,7 +180,14 @@ export default function DashboardPage() {
         buildZiinaPaymentBody(orderId),
       );
       if (!pay.redirect_url) throw new Error("No checkout URL returned");
-      window.location.href = pay.redirect_url;
+      const row = orders.find((o) => o.id === orderId);
+      setCheckoutContext({
+        trackingId: row?.tracking_id,
+        amountLabel: row ? `${row.amount} AED` : undefined,
+        packageName: row?.package?.name ?? undefined,
+      });
+      setZiinaCheckoutUrl(pay.redirect_url);
+      navigate("/checkout");
     } catch (e) {
       toast({
         title: "Could not start checkout",
@@ -562,10 +571,30 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {o.status === "pending" && o.checkout_redirect_url ? (
-                            <Button variant="hero" size="sm" className="rounded-xl" asChild>
-                              <a href={o.checkout_redirect_url} rel="noopener noreferrer">
-                                Complete payment
-                              </a>
+                            <Button
+                              variant="hero"
+                              size="sm"
+                              className="rounded-xl"
+                              type="button"
+                              onClick={() => {
+                                try {
+                                  setCheckoutContext({
+                                    trackingId: o.tracking_id,
+                                    amountLabel: `${o.amount} AED`,
+                                    packageName: o.package?.name ?? undefined,
+                                  });
+                                  setZiinaCheckoutUrl(o.checkout_redirect_url!);
+                                  navigate("/checkout");
+                                } catch (err) {
+                                  toast({
+                                    title: "Invalid checkout link",
+                                    description: err instanceof Error ? err.message : undefined,
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              Complete payment
                             </Button>
                           ) : null}
                           {o.status === "pending" && !o.checkout_redirect_url ? (

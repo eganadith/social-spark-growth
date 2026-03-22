@@ -13,6 +13,7 @@ import { persistAuthNext } from "@/lib/authRedirect";
 import { savePendingOrderDraft, loadPendingOrderDraft, clearPendingOrderDraft } from "@/lib/orderDraft";
 import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
+import { setCheckoutContext, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
 
 function isUuidParam(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -175,11 +176,27 @@ export default function OrderPage() {
       }
 
       clearPendingOrderDraft();
+      try {
+        setCheckoutContext({
+          trackingId,
+          amountLabel: `${pkg.price} AED`,
+          packageName: pkg.name ?? undefined,
+        });
+        setZiinaCheckoutUrl(redirectUrl);
+      } catch {
+        toast({
+          title: "Invalid checkout URL",
+          description: "Use “Full window” from the dashboard or contact support.",
+          variant: "destructive",
+        });
+        navigate(`/dashboard`);
+        return;
+      }
       toast({
-        title: "Redirecting to secure checkout",
+        title: "Opening secure checkout",
         description: `Tracking ID: ${trackingId}. Complete payment to confirm your order.`,
       });
-      window.location.href = redirectUrl;
+      navigate("/checkout");
     } catch (e) {
       const detail = formatPayError(e);
       toast({
