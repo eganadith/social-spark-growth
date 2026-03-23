@@ -18,7 +18,7 @@ export function isAllowedZiinaCheckoutUrl(raw: string): boolean {
   }
 }
 
-/** Persist Ziina hosted checkout URL for /checkout (must be ziina.com). */
+/** Persist Ziina hosted checkout URL for /checkout (must be ziina.com). Opened in full window — Ziina disallows iframe embed. */
 export function setZiinaCheckoutUrl(url: string): void {
   if (!isAllowedZiinaCheckoutUrl(url)) {
     throw new Error("Invalid checkout URL");

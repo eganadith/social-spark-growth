@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, Sparkles } from "lucide-react";
+import { ArrowLeft, ExternalLink, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CheckoutContext } from "@/lib/ziinaCheckoutStorage";
 import {
@@ -11,12 +11,12 @@ import {
 } from "@/lib/ziinaCheckoutStorage";
 
 /**
- * In-app Ziina checkout: Socioly-themed shell + iframe to pay.ziina.com.
- * If the provider blocks framing, use "Open full window".
+ * Socioly-themed checkout step before Ziina. Ziina blocks iframe embedding (CSP),
+ * so we send the user to pay.ziina.com in the full window — same security, no broken frame.
  */
 export default function CheckoutEmbedPage() {
   const navigate = useNavigate();
-  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [ctx, setCtx] = useState<CheckoutContext | null>(null);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function CheckoutEmbedPage() {
       navigate("/dashboard", { replace: true });
       return;
     }
-    setIframeUrl(url);
+    setCheckoutUrl(url);
   }, [navigate]);
 
   const leaveCheckout = useCallback(() => {
@@ -39,13 +39,13 @@ export default function CheckoutEmbedPage() {
     navigate("/dashboard", { replace: true });
   };
 
-  const openFullWindow = () => {
-    if (!iframeUrl) return;
+  const goToZiina = () => {
+    if (!checkoutUrl) return;
     leaveCheckout();
-    window.location.assign(iframeUrl);
+    window.location.assign(checkoutUrl);
   };
 
-  if (!iframeUrl) {
+  if (!checkoutUrl) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Loading checkout…</p>
@@ -63,13 +63,13 @@ export default function CheckoutEmbedPage() {
         <Link to="/" className="font-bold tracking-tight ig-gradient-text text-lg">
           Socioly
         </Link>
-        <Button type="button" variant="outline" size="sm" className="text-xs" onClick={openFullWindow}>
-          Full window
+        <Button type="button" variant="hero" size="sm" className="text-xs gap-1.5" onClick={goToZiina}>
+          Continue
+          <ExternalLink className="h-3.5 w-3.5 opacity-90" />
         </Button>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Left — Socioly / order context (theme) */}
         <aside className="relative flex flex-col justify-between border-b border-border/40 bg-gradient-to-br from-card via-card to-primary/[0.12] p-6 lg:w-[min(420px,38vw)] lg:border-b-0 lg:border-r lg:p-8">
           <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
             <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
@@ -87,7 +87,8 @@ export default function CheckoutEmbedPage() {
                 Complete your <span className="ig-gradient-text">payment</span>
               </h1>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                You&apos;re paying through Ziina on a secure page. Your order stays linked to your Socioly account.
+                Next you&apos;ll enter card details on Ziina&apos;s secure page. Your order stays linked to your Socioly
+                account.
               </p>
             </div>
             {(ctx?.amountLabel || ctx?.trackingId || ctx?.packageName) && (
@@ -115,32 +116,30 @@ export default function CheckoutEmbedPage() {
           </div>
           <div className="relative mt-8 flex items-start gap-3 rounded-xl border border-border/50 bg-background/40 p-4 text-xs text-muted-foreground backdrop-blur-sm lg:mt-0">
             <Shield className="h-5 w-5 shrink-0 text-primary" />
-            <span>Encrypted checkout via Ziina. Socioly never sees your card details.</span>
+            <span>Ziina processes payments; Socioly never sees your card details.</span>
           </div>
         </aside>
 
-        {/* Right — hosted payment UI */}
-        <main className="relative flex min-h-0 flex-1 flex-col bg-muted/30 p-3 sm:p-4 lg:p-6">
-          <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground sm:hidden">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>Scroll to pay</span>
+        <main className="relative flex flex-1 flex-col items-center justify-center bg-muted/30 p-6 sm:p-10">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 shadow-card text-center space-y-6">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <ExternalLink className="h-7 w-7" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold">Continue on Ziina</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                For security, the payment form can&apos;t be embedded here. You&apos;ll open Ziina in this window, then
+                return to Socioly when you&apos;re done.
+              </p>
+            </div>
+            <Button type="button" variant="hero" size="lg" className="w-full gap-2 rounded-xl text-base" onClick={goToZiina}>
+              Continue to secure payment
+              <ExternalLink className="h-4 w-4 opacity-90" />
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              You will leave this screen briefly to <span className="font-mono text-[10px]">pay.ziina.com</span>
+            </p>
           </div>
-          <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-[0_24px_80px_-24px_rgba(0,0,0,0.35)]">
-            <iframe
-              title="Ziina secure checkout"
-              src={iframeUrl}
-              className="h-full min-h-[560px] w-full flex-1 border-0 bg-white"
-              allow="payment *; fullscreen"
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-          </div>
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            If the form doesn&apos;t load,{" "}
-            <button type="button" className="text-primary underline font-medium" onClick={openFullWindow}>
-              open checkout in full window
-            </button>
-            .
-          </p>
         </main>
       </div>
     </div>
