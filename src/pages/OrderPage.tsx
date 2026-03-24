@@ -13,7 +13,65 @@ import { persistAuthNext } from "@/lib/authRedirect";
 import { savePendingOrderDraft, loadPendingOrderDraft, clearPendingOrderDraft } from "@/lib/orderDraft";
 import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
-import { setCheckoutContext, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
+import { setCheckoutContext, setPendingPaymentIntentId, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
+
+const DEBUG_ENDPOINT = "http://127.0.0.1:7843/ingest/dd05a93a-6550-476f-97a1-81d447442886";
+const DEBUG_SESSION_ID = "aab757";
+
+function debugLog(
+  runId: string,
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+): void {
+  // #region agent log
+  fetch(DEBUG_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": DEBUG_SESSION_ID,
+    },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION_ID,
+      runId,
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
+
+function safeRandomUuid(): string {
+  const g =
+    typeof globalThis !== "undefined" && "crypto" in globalThis
+      ? (globalThis as {
+          crypto?: {
+            randomUUID?: () => string;
+            getRandomValues?: (arr: Uint8Array) => Uint8Array;
+          };
+        }).crypto
+      : undefined;
+  if (g?.randomUUID) return g.randomUUID();
+  if (g?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    g.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  const p = typeof performance !== "undefined" ? Math.floor(performance.now() * 1000) : 0;
+  const t = Date.now().toString(16).padStart(12, "0");
+  const r = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+    .toString(16)
+    .padStart(14, "0");
+  const raw = `${t}${p.toString(16).padStart(6, "0")}${r}`.slice(0, 32);
+  return `${raw.slice(0, 8)}-${raw.slice(8, 12)}-4${raw.slice(13, 16)}-a${raw.slice(17, 20)}-${raw.slice(20, 32)}`;
+}
 
 function isUuidParam(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -124,6 +182,7 @@ export default function OrderPage() {
   const canProceed = step === 1 ? canProceedStep1Guest : canProceedStep2;
 
   async function handleSubmitOrder() {
+    const runId = `order-submit-${Date.now()}`;
     if (!user || !pkg) return;
     if (!termsAgreed) {
       const msg = "You must agree to the Terms and Conditions before proceeding.";
@@ -135,8 +194,21 @@ export default function OrderPage() {
     setProcessing(true);
     try {
       const sb = getSupabase();
-      if (!submitIdempotencyRef.current) submitIdempotencyRef.current = crypto.randomUUID();
-      const trackingId = `SL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+      const hasRandomUuid =
+        typeof globalThis !== "undefined" &&
+        "crypto" in globalThis &&
+        Boolean((globalThis as { crypto?: { randomUUID?: unknown } }).crypto?.randomUUID);
+      debugLog(runId, "H7", "OrderPage.tsx:handleSubmitOrder:uuid-check", "uuid capability check", {
+        hasRandomUuid,
+      });
+      if (!submitIdempotencyRef.current) submitIdempotencyRef.current = safeRandomUuid();
+      const trackingId = `SL-${safeRandomUuid().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+      debugLog(runId, "H8", "OrderPage.tsx:handleSubmitOrder:insert:start", "inserting order row", {
+        hasUserId: Boolean(user.id),
+        hasPackageId: Boolean(pkg.id),
+        amount: pkg.price,
+        hasIdempotencyKey: Boolean(submitIdempotencyRef.current),
+      });
       const { data: inserted, error: insErr } = await sb
         .from("orders")
         .insert({
@@ -152,20 +224,43 @@ export default function OrderPage() {
         })
         .select("id")
         .single();
-      if (insErr) throw new Error(insErr.message);
+      if (insErr) {
+        debugLog(runId, "H8", "OrderPage.tsx:handleSubmitOrder:insert:error", "order insert failed", {
+          message: insErr.message,
+          code: (insErr as { code?: string }).code ?? null,
+        });
+        throw new Error(insErr.message);
+      }
       if (!inserted?.id) throw new Error("Order was not created");
+      debugLog(runId, "H8", "OrderPage.tsx:handleSubmitOrder:insert:ok", "order inserted", {
+        orderId: inserted.id,
+      });
 
       let redirectUrl: string;
       try {
+        const paymentBody = buildZiinaPaymentBody(inserted.id);
+        debugLog(runId, "H6", "OrderPage.tsx:handleSubmitOrder:create-payment:start", "create-ziina-payment request", {
+          orderId: inserted.id,
+          payloadHasTestFlag: "test" in paymentBody,
+          origin:
+            typeof window !== "undefined" ? window.location.origin : null,
+        });
         const pay = await invokeAuthedFunction<{
           redirect_url?: string;
           already_paid?: boolean;
           tracking_id?: string;
+          payment_intent_id?: string;
           status?: string;
         }>(
           "create-ziina-payment",
-          buildZiinaPaymentBody(inserted.id),
+          paymentBody,
         );
+        debugLog(runId, "H6", "OrderPage.tsx:handleSubmitOrder:create-payment:response", "create-ziina-payment response", {
+          already_paid: Boolean(pay.already_paid),
+          status: pay.status ?? null,
+          hasRedirectUrl: Boolean(pay.redirect_url),
+          hasPaymentIntentId: Boolean(pay.payment_intent_id),
+        });
         if (pay.already_paid) {
           const qs = new URLSearchParams();
           qs.set("payment", "success");
@@ -178,8 +273,12 @@ export default function OrderPage() {
         }
         redirectUrl = pay.redirect_url;
         if (!redirectUrl) throw new Error("No checkout URL returned");
+        if (pay.payment_intent_id) setPendingPaymentIntentId(pay.payment_intent_id);
       } catch (e) {
         const detail = formatPayError(e);
+        debugLog(runId, "H3", "OrderPage.tsx:handleSubmitOrder:create-payment:error", "create-ziina-payment error", {
+          message: detail,
+        });
         toast({
           title: "Order saved — payment could not start",
           description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""} You can retry from your dashboard.`,
@@ -214,6 +313,9 @@ export default function OrderPage() {
       navigate("/checkout");
     } catch (e) {
       const detail = formatPayError(e);
+      debugLog(runId, "H8", "OrderPage.tsx:handleSubmitOrder:catch", "submit order catch", {
+        message: detail,
+      });
       toast({
         title: "Could not submit order",
         description: `${detail.slice(0, 220)}${detail.length > 220 ? "…" : ""}`,

@@ -155,11 +155,8 @@ Deno.serve(async (req) => {
   }
 
   const storedPid = typeof order.payment_id === "string" ? order.payment_id.trim() : "";
-  if (!paymentIntentId && storedPid) {
-    paymentIntentId = storedPid;
-  }
   if (!paymentIntentId) {
-    return jsonResponse({ error: "payment_intent_id required (or start checkout first)" }, 400);
+    return jsonResponse({ error: "payment_intent_id required from return URL/session context" }, 400);
   }
   if (storedPid && paymentIntentId !== storedPid) {
     return jsonResponse({ error: "payment_intent_id does not match this order" }, 400);

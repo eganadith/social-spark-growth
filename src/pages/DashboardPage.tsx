@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import { buildZiinaPaymentBody } from "@/lib/ziinaCheckout";
-import { setCheckoutContext, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
+import { setCheckoutContext, setPendingPaymentIntentId, setZiinaCheckoutUrl } from "@/lib/ziinaCheckoutStorage";
 import { ensureSession } from "@/lib/authSession";
 import type { DbReward } from "@/types/database";
 import {
@@ -28,6 +28,36 @@ import RewardModal from "@/components/RewardModal";
 import { useToast } from "@/hooks/use-toast";
 import { REWARD_MILESTONES } from "@/lib/rewardMilestones";
 import { cn } from "@/lib/utils";
+
+const DEBUG_ENDPOINT = "http://127.0.0.1:7843/ingest/dd05a93a-6550-476f-97a1-81d447442886";
+const DEBUG_SESSION_ID = "aab757";
+
+function debugLog(
+  runId: string,
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+): void {
+  // #region agent log
+  fetch(DEBUG_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": DEBUG_SESSION_ID,
+    },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION_ID,
+      runId,
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
 
 type OrderRow = {
   id: string;
@@ -177,16 +207,37 @@ export default function DashboardPage() {
   }
 
   async function startCheckout(orderId: string) {
+    const runId = `checkout-${Date.now()}`;
     try {
       setPayingOrderId(orderId);
+      const row = orders.find((o) => o.id === orderId);
+      const paymentBody = buildZiinaPaymentBody(orderId);
+      debugLog(runId, "H4", "DashboardPage.tsx:startCheckout:start", "start checkout clicked", {
+        orderId,
+        status: row?.status ?? null,
+        amount: row?.amount ?? null,
+        hasStoredCheckoutUrl: Boolean(row?.checkout_redirect_url),
+        origin:
+          typeof window !== "undefined" ? window.location.origin : null,
+        payloadHasTestFlag:
+          paymentBody &&
+          typeof paymentBody === "object" &&
+          "test" in paymentBody,
+      });
       const pay = await invokeAuthedFunction<{
         redirect_url?: string;
         already_paid?: boolean;
         tracking_id?: string;
+        payment_intent_id?: string;
       }>(
         "create-ziina-payment",
-        buildZiinaPaymentBody(orderId),
+        paymentBody,
       );
+      debugLog(runId, "H2", "DashboardPage.tsx:startCheckout:response", "create-ziina-payment response", {
+        already_paid: Boolean(pay.already_paid),
+        hasRedirectUrl: Boolean(pay.redirect_url),
+        hasTrackingId: Boolean(pay.tracking_id),
+      });
       if (pay.already_paid) {
         const qs = new URLSearchParams();
         qs.set("payment", "success");
@@ -197,7 +248,7 @@ export default function DashboardPage() {
         return;
       }
       if (!pay.redirect_url) throw new Error("No checkout URL returned");
-      const row = orders.find((o) => o.id === orderId);
+      if (pay.payment_intent_id) setPendingPaymentIntentId(pay.payment_intent_id);
       setCheckoutContext({
         trackingId: row?.tracking_id,
         amountLabel: row ? `${row.amount} AED` : undefined,
@@ -206,6 +257,9 @@ export default function DashboardPage() {
       setZiinaCheckoutUrl(pay.redirect_url);
       navigate("/checkout");
     } catch (e) {
+      debugLog(runId, "H3", "DashboardPage.tsx:startCheckout:error", "create-ziina-payment error", {
+        message: e instanceof Error ? e.message : String(e),
+      });
       toast({
         title: "Could not start checkout",
         description: e instanceof Error ? e.message : undefined,

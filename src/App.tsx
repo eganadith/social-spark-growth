@@ -20,6 +20,7 @@ import ReferralCapture from "./components/ReferralCapture";
 import ScrollToHash from "./components/ScrollToHash";
 import StickyGrowthCta from "./components/StickyGrowthCta";
 import { initAnalytics, trackPage } from "./lib/analytics";
+import { initMetaPixel, trackMetaPageView } from "./lib/metaPixel";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
@@ -37,11 +38,13 @@ function AnalyticsTracker() {
 
   useEffect(() => {
     initAnalytics();
+    initMetaPixel();
   }, []);
 
   useEffect(() => {
     const page = `${location.pathname}${location.search}${location.hash}`;
     trackPage(page);
+    trackMetaPageView();
   }, [location.pathname, location.search, location.hash]);
 
   return null;

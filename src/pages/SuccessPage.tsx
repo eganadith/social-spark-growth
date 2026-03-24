@@ -2,11 +2,45 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { persistAuthNext } from "@/lib/authRedirect";
 import { invokeAuthedFunction } from "@/lib/supabaseFunctions";
 import { readPaymentIntentFromUrl } from "@/lib/paymentVerification";
+import {
+  clearPendingPaymentIntentId,
+  peekPendingPaymentIntentId,
+} from "@/lib/ziinaCheckoutStorage";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+
+const DEBUG_ENDPOINT = "http://127.0.0.1:7843/ingest/dd05a93a-6550-476f-97a1-81d447442886";
+const DEBUG_SESSION_ID = "aab757";
+
+function debugLog(
+  runId: string,
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+): void {
+  // #region agent log
+  fetch(DEBUG_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": DEBUG_SESSION_ID,
+    },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION_ID,
+      runId,
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
 
 function isUuid(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -37,6 +71,13 @@ export default function SuccessPage() {
   const queryString = params.toString();
 
   const runVerify = useCallback(async () => {
+    const runId = `verify-${Date.now()}`;
+    debugLog(runId, "H1", "SuccessPage.tsx:runVerify:start", "success page verify started", {
+      orderIdPresent: Boolean(orderId),
+      orderIdValid: isUuid(orderId),
+      hasUser: Boolean(user?.id),
+      queryString,
+    });
     if (!orderId || !isUuid(orderId)) {
       setPhase("err");
       setMessage("Invalid order reference.");
@@ -45,16 +86,20 @@ export default function SuccessPage() {
 
     const sp = new URLSearchParams(queryString);
     let pi = readPaymentIntentFromUrl(sp);
-    if (!pi && user && isSupabaseConfigured) {
-      const sb = getSupabase();
-      const { data: row } = await sb
-        .from("orders")
-        .select("payment_id")
-        .eq("id", orderId)
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (row?.payment_id) pi = row.payment_id;
+    let piSource: "url" | "session" | "none" = pi ? "url" : "none";
+    if (!pi) {
+      const pending = peekPendingPaymentIntentId();
+      if (pending) {
+        pi = pending;
+        piSource = "session";
+      }
     }
+    debugLog(runId, "H5", "SuccessPage.tsx:runVerify:pi-source", "payment intent source resolved", {
+      piSource,
+      hasPaymentIntent: Boolean(pi),
+      paymentIntentPrefix: pi ? `${pi.slice(0, 8)}…` : null,
+      queryHasPi: Boolean(readPaymentIntentFromUrl(sp)),
+    });
 
     if (!pi) {
       setPhase("err");
@@ -64,11 +109,23 @@ export default function SuccessPage() {
 
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
+        debugLog(runId, "H2", "SuccessPage.tsx:runVerify:invoke", "calling verify-payment", {
+          attempt,
+          hasPaymentIntent: Boolean(pi),
+        });
         const res = await invokeAuthedFunction<VerifyResponse>("verify-payment", {
           order_id: orderId,
           payment_intent_id: pi,
         });
+        debugLog(runId, "H1", "SuccessPage.tsx:runVerify:response", "verify-payment response", {
+          attempt,
+          verified: Boolean(res.verified),
+          already_verified: Boolean(res.already_verified),
+          status: res.status ?? null,
+          hasTrackingId: Boolean(res.tracking_id),
+        });
         if (res.verified) {
+          clearPendingPaymentIntentId();
           setPhase("ok");
           const qs = new URLSearchParams();
           qs.set("payment", "success");
@@ -80,6 +137,10 @@ export default function SuccessPage() {
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Verification failed";
+        debugLog(runId, "H3", "SuccessPage.tsx:runVerify:error", "verify-payment error", {
+          attempt,
+          message: msg,
+        });
         if (msg.includes("not completed") || msg.includes("Payment not completed") || /400/.test(msg)) {
           await sleep(1200);
           continue;

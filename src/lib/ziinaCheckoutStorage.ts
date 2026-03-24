@@ -1,5 +1,6 @@
 const URL_KEY = "socioly_ziina_checkout_url";
 const CTX_KEY = "socioly_checkout_ctx";
+const PAYMENT_INTENT_KEY = "socioly_pending_payment_intent_id";
 
 export type CheckoutContext = {
   trackingId?: string;
@@ -52,4 +53,19 @@ export function peekCheckoutContext(): CheckoutContext | null {
 
 export function clearCheckoutContext(): void {
   sessionStorage.removeItem(CTX_KEY);
+}
+
+export function setPendingPaymentIntentId(id: string): void {
+  const v = id.trim();
+  if (!v) return;
+  sessionStorage.setItem(PAYMENT_INTENT_KEY, v);
+}
+
+export function peekPendingPaymentIntentId(): string | null {
+  const v = sessionStorage.getItem(PAYMENT_INTENT_KEY);
+  return v?.trim() ? v.trim() : null;
+}
+
+export function clearPendingPaymentIntentId(): void {
+  sessionStorage.removeItem(PAYMENT_INTENT_KEY);
 }
