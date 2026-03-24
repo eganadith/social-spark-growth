@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { format } from "date-fns";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -97,6 +97,7 @@ function platformLabel(p: string | undefined): string {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading, signOut, isConfigured } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -125,6 +126,9 @@ export default function DashboardPage() {
     () => referralProgressToNext(referralCount),
     [referralCount],
   );
+  const showPaymentSuccess = searchParams.get("payment") === "success";
+  const orderStatus = searchParams.get("order_status") || "processing";
+  const trackingIdFromQuery = searchParams.get("tracking_id");
 
   useEffect(() => {
     if (!user || !isConfigured) {
@@ -175,10 +179,23 @@ export default function DashboardPage() {
   async function startCheckout(orderId: string) {
     try {
       setPayingOrderId(orderId);
-      const pay = await invokeAuthedFunction<{ redirect_url: string }>(
+      const pay = await invokeAuthedFunction<{
+        redirect_url?: string;
+        already_paid?: boolean;
+        tracking_id?: string;
+      }>(
         "create-ziina-payment",
         buildZiinaPaymentBody(orderId),
       );
+      if (pay.already_paid) {
+        const qs = new URLSearchParams();
+        qs.set("payment", "success");
+        qs.set("order_status", "processing");
+        qs.set("order_id", orderId);
+        if (pay.tracking_id) qs.set("tracking_id", pay.tracking_id);
+        navigate(`/dashboard?${qs.toString()}`, { replace: true });
+        return;
+      }
       if (!pay.redirect_url) throw new Error("No checkout URL returned");
       const row = orders.find((o) => o.id === orderId);
       setCheckoutContext({
@@ -259,6 +276,15 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {showPaymentSuccess && (
+          <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 sm:px-5 sm:py-4">
+            <p className="text-sm font-semibold text-emerald-300">Thank you for your order.</p>
+            <p className="mt-1 text-xs sm:text-sm text-emerald-200/90">
+              Payment is confirmed and your order is now in {orderStatus}.
+              {trackingIdFromQuery ? ` Tracking ID: ${trackingIdFromQuery}.` : ""}
+            </p>
+          </div>
+        )}
 
         {loadingData ? (
           <div className="space-y-6">
@@ -570,34 +596,7 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
-                          {o.status === "pending" && o.checkout_redirect_url ? (
-                            <Button
-                              variant="hero"
-                              size="sm"
-                              className="rounded-xl"
-                              type="button"
-                              onClick={() => {
-                                try {
-                                  setCheckoutContext({
-                                    trackingId: o.tracking_id,
-                                    amountLabel: `${o.amount} AED`,
-                                    packageName: o.package?.name ?? undefined,
-                                  });
-                                  setZiinaCheckoutUrl(o.checkout_redirect_url!);
-                                  navigate("/checkout");
-                                } catch (err) {
-                                  toast({
-                                    title: "Invalid checkout link",
-                                    description: err instanceof Error ? err.message : undefined,
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              Complete payment
-                            </Button>
-                          ) : null}
-                          {o.status === "pending" && !o.checkout_redirect_url ? (
+                          {o.status === "pending" ? (
                             <Button
                               variant="hero"
                               size="sm"

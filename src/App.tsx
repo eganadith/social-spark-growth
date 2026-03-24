@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,11 +12,14 @@ import OrderPage from "./pages/OrderPage";
 import TrackPage from "./pages/TrackPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CheckEmailPage from "./pages/CheckEmailPage";
 import DashboardPage from "./pages/DashboardPage";
 import ReferralCapture from "./components/ReferralCapture";
 import ScrollToHash from "./components/ScrollToHash";
 import StickyGrowthCta from "./components/StickyGrowthCta";
+import { initAnalytics, trackPage } from "./lib/analytics";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
@@ -28,12 +32,28 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  useEffect(() => {
+    const page = `${location.pathname}${location.search}${location.hash}`;
+    trackPage(page);
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AnalyticsTracker />
         <ScrollToHash />
         <ReferralCapture />
         <Navbar />
@@ -43,6 +63,8 @@ const App = () => (
             <Route path="/order" element={<OrderPage />} />
             <Route path="/track" element={<TrackPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
             <Route path="/check-email" element={<CheckEmailPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/admin" element={<AdminPage />} />

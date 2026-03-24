@@ -1,11 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { aedToFils, verifyZiinaIntentAgainstOrder } from "../_shared/ziinaPaymentRules.ts";
 
 const ZIINA_BASE = "https://api-v2.ziina.com/api";
-
-function aedToFils(amount: number): number {
-  return Math.round(Number(amount) * 100);
-}
 
 function escapeHtml(s: string): string {
   return s
@@ -139,6 +136,9 @@ Deno.serve(async (req) => {
   }
 
   if (order.status === "paid") {
+    console.log("[verify-payment] already paid (idempotent skip)", {
+      order_id: orderId.slice(0, 8) + "…",
+    });
     return jsonResponse({
       verified: true,
       already_verified: true,
@@ -165,6 +165,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "payment_intent_id does not match this order" }, 400);
   }
 
+  console.log("[verify-payment] begin", {
+    order_id: orderId.slice(0, 8) + "…",
+    payment_intent_id: paymentIntentId.slice(0, 8) + "…",
+  });
+
   const zRes = await fetch(`${ZIINA_BASE}/payment_intent/${encodeURIComponent(paymentIntentId)}`, {
     method: "GET",
     headers: { Authorization: `Bearer ${ziinaKey}` },
@@ -180,33 +185,55 @@ Deno.serve(async (req) => {
 
   if (!zRes.ok) {
     const msg = typeof zJson.message === "string" ? zJson.message : `Ziina error (${zRes.status})`;
+    console.error("[verify-payment] Ziina GET failed", {
+      http: zRes.status,
+      ziina_message: msg,
+      payment_intent_id: paymentIntentId.slice(0, 8) + "…",
+    });
     return jsonResponse({ error: msg, detail: zJson }, 502);
   }
 
   const ziinaStatus = typeof zJson.status === "string" ? zJson.status : "";
-  if (ziinaStatus !== "completed") {
-    return jsonResponse(
-      {
-        error: "Payment not completed",
-        ziina_status: ziinaStatus,
-      },
-      400,
-    );
-  }
-
-  const currency = typeof zJson.currency_code === "string" ? zJson.currency_code : "";
-  if (currency && currency !== "AED") {
-    return jsonResponse({ error: "Currency mismatch" }, 400);
-  }
-
-  const ziinaAmount = Number(zJson.amount);
+  const ziinaAmount = zJson.amount;
+  const currency = zJson.currency_code;
   const expectedFils = aedToFils(Number(order.amount));
-  if (!Number.isFinite(ziinaAmount) || ziinaAmount !== expectedFils) {
+
+  console.log("[verify-payment] Ziina intent snapshot", {
+    Ziina_Status: ziinaStatus,
+    Amount_fils: ziinaAmount,
+    Expected_fils: expectedFils,
+    Currency: currency,
+  });
+
+  const gate = verifyZiinaIntentAgainstOrder({
+    ziinaStatus,
+    ziinaAmountUnknown: ziinaAmount,
+    ziinaCurrencyUnknown: currency,
+    orderAmountAed: Number(order.amount),
+  });
+
+  if (!gate.ok) {
+    console.warn("[verify-payment] NOT marking paid", {
+      reason: gate.error,
+      ziina_status: gate.ziina_status ?? ziinaStatus,
+    });
+    if (gate.error === "Payment not completed") {
+      return jsonResponse(
+        {
+          error: "Payment not completed",
+          ziina_status: gate.ziina_status ?? ziinaStatus,
+        },
+        400,
+      );
+    }
+    if (gate.error === "Currency mismatch") {
+      return jsonResponse({ error: "Currency mismatch" }, 400);
+    }
     return jsonResponse(
       {
         error: "Amount mismatch",
         expected_fils: expectedFils,
-        ziina_amount: ziinaAmount,
+        ziina_amount: Number(ziinaAmount),
       },
       400,
     );
@@ -238,6 +265,10 @@ Deno.serve(async (req) => {
       .select("tracking_id, status")
       .eq("id", order.id)
       .maybeSingle();
+    console.log("[verify-payment] idempotent: row already updated", {
+      order_id: orderId.slice(0, 8) + "…",
+      status: again?.status,
+    });
     return jsonResponse({
       verified: true,
       already_verified: true,
@@ -245,6 +276,12 @@ Deno.serve(async (req) => {
       status: again?.status ?? "paid",
     });
   }
+
+  console.log("[verify-payment] Order updated: paid", {
+    order_id: orderId.slice(0, 8) + "…",
+    payment_intent_id: paymentIntentId.slice(0, 8) + "…",
+    success: true,
+  });
 
   let emailSent = false;
   const resendKey = Deno.env.get("RESEND_API_KEY");

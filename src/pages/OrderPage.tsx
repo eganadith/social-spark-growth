@@ -157,10 +157,25 @@ export default function OrderPage() {
 
       let redirectUrl: string;
       try {
-        const pay = await invokeAuthedFunction<{ redirect_url: string }>(
+        const pay = await invokeAuthedFunction<{
+          redirect_url?: string;
+          already_paid?: boolean;
+          tracking_id?: string;
+          status?: string;
+        }>(
           "create-ziina-payment",
           buildZiinaPaymentBody(inserted.id),
         );
+        if (pay.already_paid) {
+          const qs = new URLSearchParams();
+          qs.set("payment", "success");
+          qs.set("order_status", "processing");
+          if (inserted.id) qs.set("order_id", inserted.id);
+          if (pay.tracking_id) qs.set("tracking_id", pay.tracking_id);
+          clearPendingOrderDraft();
+          navigate(`/dashboard?${qs.toString()}`);
+          return;
+        }
         redirectUrl = pay.redirect_url;
         if (!redirectUrl) throw new Error("No checkout URL returned");
       } catch (e) {

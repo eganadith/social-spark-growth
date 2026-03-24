@@ -42,7 +42,7 @@ const content = [
   },
   {
     heading: "10. Contact",
-    body: "For any questions, contact: support@socioly.com",
+    body: "For any questions, contact: support@socioly.live",
   },
 ];
 

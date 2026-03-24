@@ -46,7 +46,7 @@ export const PACKAGES: StorePackage[] = [
     platform: "instagram",
     name: "Starter Boost",
     followers: 2000,
-    price: 99,
+    price: 10,
     popular: false,
     premium: false,
   },

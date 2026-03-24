@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured, supabase } from "@/lib/supabaseClient";
-import { getAuthEmailRedirectTo } from "@/lib/siteUrl";
+import { getAuthEmailRedirectTo, getPasswordResetRedirectTo } from "@/lib/siteUrl";
 import { clearPendingReferralCode, getPendingReferralCode } from "@/lib/referralStorage";
 
 async function applyPendingReferral(): Promise<void> {
@@ -79,6 +79,15 @@ export function useAuth() {
     if (error) throw error;
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const sb = getSupabase();
+    const redirectTo = getPasswordResetRedirectTo();
+    const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+      ...(redirectTo ? { redirectTo } : {}),
+    });
+    if (error) throw error;
+  }, []);
+
   return {
     user,
     session,
@@ -86,6 +95,7 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    requestPasswordReset,
     isConfigured: isSupabaseConfigured,
   };
 }

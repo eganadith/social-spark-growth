@@ -44,12 +44,16 @@ export type TrackOrderPayload = {
   created_at: string;
 };
 
+/** Stored on `profiles.role`; customers are `user`. */
+export type ProfileStaffRole = "user" | "admin" | "super_admin";
+
 export type DbProfile = {
   id: string;
   email: string;
   referral_code: string;
   referred_by: string | null;
   created_at: string;
+  role: ProfileStaffRole;
 };
 
 export type DbReward = {

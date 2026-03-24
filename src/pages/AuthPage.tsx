@@ -113,7 +113,14 @@ export default function AuthPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password</label>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <label className="block text-sm font-medium">Password</label>
+              {mode === "signin" && (
+                <Link to="/auth/forgot-password" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
             <input
               type="password"
               required

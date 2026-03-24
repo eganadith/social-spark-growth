@@ -6,6 +6,7 @@ Functions live under `supabase/functions/`. **`supabase/config.toml`** sets `ver
 |----------|---------|
 | `create-ziina-payment` | Creates a Ziina Payment Intent; stores `payment_id` and `checkout_redirect_url` on the order. |
 | `verify-payment` | Server-side Ziina GET + amount check; sets order `paid`, `payment_verified_at`; sends Resend confirmation email when configured. |
+| `delete-user` | Super-admin only: deletes an `auth` user (and cascaded `public` rows). Called from Admin → Users. |
 
 ## Deploy (same Supabase project as `VITE_SUPABASE_URL`)
 
@@ -13,6 +14,7 @@ Functions live under `supabase/functions/`. **`supabase/config.toml`** sets `ver
 npx supabase link --project-ref <YOUR_PROJECT_REF>
 npx supabase functions deploy create-ziina-payment
 npx supabase functions deploy verify-payment
+npx supabase functions deploy delete-user
 ```
 
 After deploy, in **Dashboard → Edge Functions → [function] → Details**, confirm **Verify JWT** is off for those functions (matches `verify_jwt = false` in config).

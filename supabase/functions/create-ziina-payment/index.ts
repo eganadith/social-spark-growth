@@ -1,10 +1,30 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { aedToFils, isOrderAmountValidForCheckout, verifyZiinaIntentAgainstOrder } from "../_shared/ziinaPaymentRules.ts";
 
 const ZIINA_BASE = "https://api-v2.ziina.com/api";
 
-function aedToFils(amount: number): number {
-  return Math.round(Number(amount) * 100);
+/** Ziina returns "message too long or too short" if the display string is outside their limits. */
+function buildZiinaDisplayMessage(opts: {
+  tracking_id: string | null | undefined;
+  order_id: string;
+}): string {
+  const tid =
+    typeof opts.tracking_id === "string" && opts.tracking_id.trim()
+      ? opts.tracking_id.trim()
+      : "";
+  const shortId = opts.order_id.replace(/-/g, "").slice(0, 12);
+  let raw = tid ? `Socioly · ${tid}` : `Socioly order ${shortId}`;
+  raw = raw.replace(/[^\x20-\x7E]/g, " ").replace(/\s+/g, " ").trim();
+  const min = 8;
+  const max = 100;
+  if (raw.length < min) {
+    raw = `Socioly ${shortId || opts.order_id.slice(0, 8)}`;
+  }
+  if (raw.length > max) {
+    raw = raw.slice(0, max).trim();
+  }
+  return raw;
 }
 
 /** Hostnames allowed for success/cancel URLs (pro-run-store pattern + optional env). */
@@ -112,7 +132,7 @@ Deno.serve(async (req) => {
 
   const { data: order, error: orderErr } = await admin
     .from("orders")
-    .select("id, user_id, status, amount, payment_id, checkout_redirect_url, email")
+    .select("id, user_id, status, amount, payment_id, checkout_redirect_url, email, tracking_id")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -126,8 +146,58 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Order is not awaiting payment" }, 400);
   }
 
+  // If an older payment intent for this pending order is already completed, reconcile the order
+  // instead of creating a new charge flow.
+  const existingPaymentId = typeof order.payment_id === "string" ? order.payment_id.trim() : "";
+  if (existingPaymentId) {
+    const probe = await fetch(`${ZIINA_BASE}/payment_intent/${encodeURIComponent(existingPaymentId)}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${ziinaKey}` },
+    });
+    if (probe.ok) {
+      const txt = await probe.text();
+      let pj: Record<string, unknown> = {};
+      try {
+        pj = txt ? JSON.parse(txt) : {};
+      } catch {
+        pj = {};
+      }
+      const st = typeof pj.status === "string" ? pj.status : "";
+      const gate = verifyZiinaIntentAgainstOrder({
+        ziinaStatus: st,
+        ziinaAmountUnknown: pj.amount,
+        ziinaCurrencyUnknown: pj.currency_code,
+        orderAmountAed: Number(order.amount),
+      });
+      if (gate.ok) {
+        console.log("[create-ziina-payment] reconcile: existing intent completed → mark paid", {
+          order_id: String(order.id).slice(0, 8) + "…",
+          Ziina_Status: st,
+        });
+        const paidAt = new Date().toISOString();
+        const { error: recErr } = await admin
+          .from("orders")
+          .update({
+            status: "paid",
+            progress: 25,
+            payment_verified_at: paidAt,
+            paid_at: paidAt,
+          })
+          .eq("id", order.id)
+          .eq("user_id", user.id)
+          .eq("status", "pending");
+        if (recErr) return jsonResponse({ error: recErr.message }, 500);
+        return jsonResponse({
+          already_paid: true,
+          status: "paid",
+          tracking_id: order.tracking_id,
+        });
+      }
+    }
+  }
+
   const fils = aedToFils(Number(order.amount));
-  if (!Number.isFinite(fils) || fils < 200) {
+  if (!isOrderAmountValidForCheckout(Number(order.amount))) {
     return jsonResponse({ error: "Order amount must be at least 2 AED" }, 400);
   }
 
@@ -169,10 +239,10 @@ Deno.serve(async (req) => {
 
   const testMode = body.test === true || Deno.env.get("ZIINA_TEST_MODE") === "true";
 
-  const orderEmail =
-    typeof order.email === "string" && order.email.trim() ? order.email.trim() : user.email ?? "";
-  const msgRaw = `Order #${order.id} | ${orderEmail || "customer"}`;
-  const message = msgRaw.length > 500 ? `${msgRaw.slice(0, 497)}...` : msgRaw;
+  const message = buildZiinaDisplayMessage({
+    tracking_id: order.tracking_id as string | null | undefined,
+    order_id: order.id as string,
+  });
 
   const ziinaBody: Record<string, unknown> = {
     amount: fils,
@@ -209,6 +279,11 @@ Deno.serve(async (req) => {
       typeof zJson.message === "string"
         ? zJson.message
         : `Ziina error (${zRes.status})`;
+    console.error("[create-ziina-payment] Ziina POST failed", {
+      http: zRes.status,
+      ziina_message: msg,
+      order_id: String(order.id).slice(0, 8) + "…",
+    });
     return jsonResponse({ error: msg, detail: zJson }, 502);
   }
 
@@ -217,6 +292,13 @@ Deno.serve(async (req) => {
   if (!paymentIntentId || !redirectUrl) {
     return jsonResponse({ error: "Invalid Ziina response" }, 502);
   }
+
+  console.log("[create-ziina-payment] Payment Intent created", {
+    Payment_Intent_ID: paymentIntentId.slice(0, 8) + "…",
+    Amount_fils: fils,
+    testMode,
+    Order_ID: String(order.id).slice(0, 8) + "…",
+  });
 
   const { error: updErr } = await admin
     .from("orders")

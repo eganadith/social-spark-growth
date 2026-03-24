@@ -20,7 +20,7 @@ INSERT INTO public.packages (platform, name, followers, price, popular, premium)
 SELECT v.platform, v.name, v.followers, v.price, v.popular, v.premium
 FROM (
   VALUES
-    ('instagram', 'Starter Boost', 2000, 99::numeric(10, 2), false, false),
+    ('instagram', 'Starter Boost', 2000, 10::numeric(10, 2), false, false),
     ('instagram', 'Growth Pack', 5000, 199::numeric(10, 2), false, false),
     ('instagram', 'Influencer Pack', 10000, 499::numeric(10, 2), true, false),
     ('instagram', 'Viral Boost', 50000, 2399::numeric(10, 2), false, false),

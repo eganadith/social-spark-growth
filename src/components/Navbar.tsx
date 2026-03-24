@@ -3,6 +3,7 @@ import { Link, useLocation, type To } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useStaffRole } from "@/hooks/useStaffRole";
 import { BrandLogo } from "@/components/BrandLogo";
 
 export default function Navbar() {
@@ -10,7 +11,10 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const { user, loading, signOut, isConfigured } = useAuth();
-  const isAdmin = user?.app_metadata?.role === "admin";
+  const { isStaff, loading: roleLoading } = useStaffRole();
+
+  /** Admin route is hidden unless signed in and `profiles.role` is staff (never rely on role before fetch completes). */
+  const showAdminNav = Boolean(user) && !loading && !roleLoading && isStaff;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -27,7 +31,7 @@ export default function Navbar() {
     { to: { pathname: "/", hash: "viral-loop" }, label: "Earn" },
     { to: "/track", label: "Track Order" },
     ...(user ? [{ to: "/dashboard", label: "Dashboard" }] : []),
-    ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
+    ...(showAdminNav ? [{ to: "/admin", label: "Admin" }] : []),
   ];
 
   return (

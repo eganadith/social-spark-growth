@@ -145,10 +145,19 @@ export default function PackagesSection() {
                   <TabsTrigger
                     key={p.id}
                     value={p.id}
-                    className="gap-2 rounded-lg px-4 py-2.5 data-[state=active]:ig-gradient-border data-[state=active]:shadow-md data-[state=active]:bg-background/90"
+                    className="relative gap-2 overflow-hidden rounded-lg px-4 py-2.5 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
                   >
-                    <PIcon className="h-4 w-4 shrink-0" />
-                    {p.label}
+                    {tab === p.id && (
+                      <motion.div
+                        layoutId="packagesPlatformTab"
+                        className="pointer-events-none absolute inset-0 rounded-lg ig-gradient-border shadow-md"
+                        transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span className="relative z-10 inline-flex items-center gap-2">
+                      <PIcon className="h-4 w-4 shrink-0" />
+                      {p.label}
+                    </span>
                   </TabsTrigger>
                 );
               })}

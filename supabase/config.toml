@@ -14,6 +14,9 @@ verify_jwt = false
 [functions.verify-payment]
 verify_jwt = false
 
+[functions.delete-user]
+verify_jwt = false
+
 [db.seed]
 enabled = true
 sql_paths = ["./seed/seed_packages.sql"]

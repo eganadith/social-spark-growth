@@ -70,10 +70,12 @@ export default function SuccessPage() {
         });
         if (res.verified) {
           setPhase("ok");
-          const tid = res.tracking_id;
-          if (tid) {
-            navigate(`/track?id=${encodeURIComponent(tid)}`, { replace: true });
-          }
+          const qs = new URLSearchParams();
+          qs.set("payment", "success");
+          qs.set("order_status", "processing");
+          if (orderId) qs.set("order_id", orderId);
+          if (res.tracking_id) qs.set("tracking_id", res.tracking_id);
+          navigate(`/dashboard?${qs.toString()}`, { replace: true });
           return;
         }
       } catch (e) {
@@ -157,7 +159,7 @@ export default function SuccessPage() {
         {phase === "ok" && (
           <>
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-            <p className="text-sm text-muted-foreground">Payment successful — taking you to your order…</p>
+            <p className="text-sm text-muted-foreground">Payment successful — taking you to your dashboard…</p>
           </>
         )}
       </div>
