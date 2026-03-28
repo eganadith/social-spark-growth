@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Shield, Clock, Users, Zap, Heart } from "lucide-react";
+import { Shield, Clock, Users, Zap, Heart, Check } from "lucide-react";
+
+const INFLUENCER_PACK_PKG = "instagram-influencer-pack";
+
+const influencerMiniFeatures = ["No password required", "Safe & gradual delivery", "High-quality followers"] as const;
 
 const badges = [
   { icon: Shield, label: "Secure sign-in & data" },
@@ -79,14 +83,59 @@ export default function HeroSection() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.22, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-10"
+                className="flex flex-col items-center lg:items-stretch gap-5 sm:gap-6 mb-10 w-full max-w-lg mx-auto lg:mx-0 lg:max-w-xl"
               >
-                <Link to="/order" className="w-full sm:w-auto">
+                <Link to="/order" className="w-full sm:w-auto self-center lg:self-start">
                   <Button variant="hero" size="xl" className="w-full sm:w-auto min-h-12 rounded-2xl text-base">
                     Start growing
                   </Button>
                 </Link>
-                <Link to={{ pathname: "/", hash: "packages" }} className="w-full sm:w-auto">
+
+                <Link
+                  to={`/order?pkg=${encodeURIComponent(INFLUENCER_PACK_PKG)}`}
+                  className="group relative w-full rounded-2xl border border-white/10 bg-white/[0.06] p-4 pt-6 backdrop-blur-md shadow-lg transition-colors hover:bg-white/[0.09] package-popular-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label="Influencer Pack: 10K followers for 499 AED — open order with this package"
+                >
+                  <span className="absolute right-3 top-0 z-10 -translate-y-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-orange-500 via-pink-600 to-violet-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md sm:text-xs sm:right-4">
+                    🔥 Most Popular
+                  </span>
+                  <div className="flex flex-row items-center justify-between gap-2 min-w-0 sm:gap-4 md:gap-5">
+                    <div className="flex flex-row items-center justify-start gap-2 min-w-0 flex-1 sm:gap-3 md:gap-5">
+                      <div className="flex flex-col justify-center gap-0.5 text-left shrink min-w-0">
+                        <p className="text-xs font-semibold text-foreground leading-tight sm:text-sm md:text-base">
+                          Influencer Pack
+                        </p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:text-[10px] sm:tracking-[0.2em] md:text-xs md:tracking-widest">
+                          Followers
+                        </p>
+                      </div>
+                      <p
+                        className="text-4xl font-black tracking-tight text-foreground tabular-nums leading-[0.85] shrink-0 sm:text-5xl sm:leading-[0.9] md:text-6xl lg:text-7xl"
+                        aria-hidden
+                      >
+                        10K
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0 max-w-[46%] sm:max-w-none sm:gap-2 pl-1">
+                      <p className="text-lg font-black ig-gradient-text tabular-nums leading-none sm:text-xl md:text-2xl">
+                        499 AED
+                      </p>
+                      <ul className="flex flex-col gap-0.5 text-right sm:gap-1">
+                        {influencerMiniFeatures.map((f) => (
+                          <li
+                            key={f}
+                            className="flex items-start justify-end gap-1 text-[9px] text-muted-foreground sm:gap-1.5 sm:text-[11px]"
+                          >
+                            <Check className="h-3 w-3 text-emerald-500 shrink-0 mt-px sm:h-3.5 sm:w-3.5 sm:mt-0.5" aria-hidden />
+                            <span className="leading-tight">{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link to={{ pathname: "/", hash: "packages" }} className="w-full sm:w-auto self-center lg:self-start">
                   <Button variant="outline" size="xl" className="w-full sm:w-auto min-h-12 rounded-2xl border-white/15 bg-white/5 backdrop-blur-sm">
                     View packages
                   </Button>
