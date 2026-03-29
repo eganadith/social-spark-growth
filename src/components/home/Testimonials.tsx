@@ -57,7 +57,7 @@ export default function Testimonials() {
               animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className="rounded-2xl border border-white/10 bg-card/50 backdrop-blur-xl p-6 shadow-lg"
+              className="rounded-2xl border border-white/80 bg-white/50 backdrop-blur-xl p-6 shadow-lg"
             >
               <div className="flex gap-0.5 mb-3">
                 {Array.from({ length: t.rating }).map((_, j) => (

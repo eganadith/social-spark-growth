@@ -37,7 +37,7 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "glass-dark shadow-card" : "bg-transparent"
+        scrolled ? "glass shadow-card" : "bg-transparent"
       }`}
     >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -84,7 +84,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="md:hidden glass-dark border-t border-border px-4 pb-4 space-y-2">
+        <div className="md:hidden glass border-t border-border/60 px-4 pb-4 space-y-2">
           {links.map((l) => (
             <Link key={l.label} to={l.to} className="block py-2 text-sm font-medium text-muted-foreground">
               {l.label}

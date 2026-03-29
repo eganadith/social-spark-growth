@@ -45,7 +45,7 @@ export default function ReferralCelebrationDialog({ open, onOpenChange }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl border-white/10 bg-card/95 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-md rounded-2xl border-border/60 bg-white/90 backdrop-blur-xl shadow-xl">
         <DialogHeader>
           <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl gradient-bg">
             <PartyPopper className="h-7 w-7 text-white" />

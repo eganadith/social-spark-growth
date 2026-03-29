@@ -302,7 +302,7 @@ export default function DashboardPage() {
     <div className="min-h-screen min-h-[100dvh] px-3 sm:px-4 pt-[max(6rem,calc(env(safe-area-inset-top,0px)+4.5rem))] pb-[max(2rem,calc(env(safe-area-inset-bottom,0px)+1.5rem))] md:pt-24 md:pb-20">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/[0.08] bg-gradient-to-br from-card via-card to-primary/[0.07] p-5 sm:p-8 mb-6 sm:mb-8 shadow-[0_8px_40px_-12px_hsla(280,70%,20%,0.45)]">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.07] p-5 sm:p-8 mb-6 sm:mb-8 shadow-[0_8px_40px_-12px_hsla(280,40%,40%,0.12)]">
           <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
           <div className="absolute -left-16 bottom-0 h-32 w-32 rounded-full bg-accent/15 blur-2xl pointer-events-none" />
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -322,7 +322,7 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-xl border-white/15 bg-background/40 backdrop-blur-sm min-h-12 sm:min-h-9 px-5"
+                className="rounded-xl border-border bg-background/40 backdrop-blur-sm min-h-12 sm:min-h-9 px-5"
                 onClick={() => void signOut()}
               >
                 Sign out
@@ -380,7 +380,7 @@ export default function DashboardPage() {
               ].map((s) => (
                 <div
                   key={s.label}
-                  className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-card/80 p-5 shadow-card opacity-0 animate-fade-in-up backdrop-blur-sm transition-shadow hover:shadow-[0_12px_40px_-12px_hsla(280,60%,30%,0.35)]"
+                  className="group relative overflow-hidden rounded-2xl border border-border bg-card/80 p-5 shadow-card opacity-0 animate-fade-in-up backdrop-blur-sm transition-shadow hover:shadow-[0_12px_40px_-12px_hsla(280,45%,45%,0.15)]"
                   style={{ animationDelay: s.delay }}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -399,7 +399,7 @@ export default function DashboardPage() {
 
             {/* Referral */}
             <section
-              className="rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-card/70 p-4 sm:p-8 shadow-card mb-6 sm:mb-8 opacity-0 animate-fade-in-up backdrop-blur-xl"
+              className="rounded-2xl sm:rounded-3xl border border-border bg-card/70 p-4 sm:p-8 shadow-card mb-6 sm:mb-8 opacity-0 animate-fade-in-up backdrop-blur-xl"
               style={{ animationDelay: "0.14s" }}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5 sm:mb-6">
@@ -434,7 +434,7 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={m.code}
-                        className="flex flex-col items-center text-center rounded-xl border border-white/[0.06] bg-background/30 py-3 px-2 sm:border-0 sm:bg-transparent sm:py-0"
+                        className="flex flex-col items-center text-center rounded-xl border border-border bg-background/30 py-3 px-2 sm:border-0 sm:bg-transparent sm:py-0"
                       >
                         <div
                           className={cn(
@@ -483,7 +483,7 @@ export default function DashboardPage() {
 
               {referralCode ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-                  <div className="relative flex-1 min-w-0 rounded-xl border border-white/10 bg-background/50 ring-offset-background focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background transition-shadow">
+                  <div className="relative flex-1 min-w-0 rounded-xl border border-border bg-background/50 ring-offset-background focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background transition-shadow">
                     <div className="flex items-start gap-2.5 px-3.5 py-3.5 sm:px-4 sm:py-3">
                       <Gift className="h-4 w-4 shrink-0 text-primary mt-0.5" aria-hidden />
                       <div className="min-w-0 flex-1">
@@ -511,7 +511,7 @@ export default function DashboardPage() {
 
             {/* Rewards */}
             <section
-              className="rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-card/70 p-4 sm:p-8 shadow-card mb-6 sm:mb-8 opacity-0 animate-fade-in-up backdrop-blur-xl"
+              className="rounded-2xl sm:rounded-3xl border border-border bg-card/70 p-4 sm:p-8 shadow-card mb-6 sm:mb-8 opacity-0 animate-fade-in-up backdrop-blur-xl"
               style={{ animationDelay: "0.18s" }}
             >
               <div className="flex items-center gap-3 mb-6">
@@ -543,7 +543,7 @@ export default function DashboardPage() {
                   {rewards.map((r) => (
                     <li
                       key={r.id}
-                      className="group flex flex-col rounded-2xl border border-white/[0.08] bg-gradient-to-br from-background/80 to-primary/[0.04] p-5 shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
+                      className="group flex flex-col rounded-2xl border border-border bg-gradient-to-br from-background/80 to-primary/[0.04] p-5 shadow-sm transition-all hover:border-primary/25 hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-3 mb-4">
                         <div>
@@ -595,7 +595,7 @@ export default function DashboardPage() {
 
             {/* Orders */}
             <section
-              className="rounded-2xl sm:rounded-3xl border border-white/[0.1] bg-card/70 p-4 sm:p-8 shadow-card opacity-0 animate-fade-in-up backdrop-blur-xl"
+              className="rounded-2xl sm:rounded-3xl border border-border bg-card/70 p-4 sm:p-8 shadow-card opacity-0 animate-fade-in-up backdrop-blur-xl"
               style={{ animationDelay: "0.22s" }}
             >
               <div className="flex items-center gap-3 mb-6">
@@ -626,7 +626,7 @@ export default function DashboardPage() {
                   {orders.map((o) => (
                     <div
                       key={o.id}
-                      className="rounded-2xl border border-white/[0.08] bg-background/40 p-5 transition-all hover:border-primary/20 hover:bg-background/60"
+                      className="rounded-2xl border border-border bg-background/40 p-5 transition-all hover:border-primary/20 hover:bg-background/60"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                         <div className="space-y-1">

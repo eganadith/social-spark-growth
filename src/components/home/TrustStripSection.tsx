@@ -15,7 +15,7 @@ export default function TrustStripSection() {
   const { ref, visible } = useScrollReveal(0.15);
 
   return (
-    <section className="py-16 md:py-20 border-y border-white/5 bg-muted/20" ref={ref}>
+    <section className="py-16 md:py-20 border-y border-border/50 bg-white/35 backdrop-blur-md" ref={ref}>
       <div className="container mx-auto px-4 max-w-5xl">
         <motion.p
           initial={false}
@@ -39,7 +39,7 @@ export default function TrustStripSection() {
                 initial={false}
                 animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
                 transition={{ delay: 0.05 + i * 0.06, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center text-center gap-2 rounded-2xl border border-white/10 bg-card/30 backdrop-blur-md p-4"
+                className="flex flex-col items-center text-center gap-2 rounded-2xl border border-white/80 bg-white/50 backdrop-blur-xl p-4 shadow-sm"
               >
                 {"href" in b && b.href ? (
                   <a

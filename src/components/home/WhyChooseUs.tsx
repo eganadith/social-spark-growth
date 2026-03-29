@@ -14,7 +14,7 @@ export default function WhyChooseUs() {
   const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="py-20 md:py-24 bg-muted/20 border-y border-white/5" ref={ref}>
+    <section className="py-20 md:py-24 bg-white/30 backdrop-blur-sm border-y border-border/50" ref={ref}>
       <div className="container mx-auto px-4">
         <div
           className={`text-center mb-14 transition-all duration-700 ${
@@ -30,7 +30,7 @@ export default function WhyChooseUs() {
         </div>
 
         <div
-          className={`max-w-5xl mx-auto mb-10 w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl ring-1 ring-white/5 transition-all duration-700 ${
+          className={`max-w-5xl mx-auto mb-10 w-full rounded-2xl overflow-hidden border border-white/80 shadow-2xl ring-1 ring-black/5 transition-all duration-700 ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           }`}
         >
@@ -46,7 +46,7 @@ export default function WhyChooseUs() {
               loading="lazy"
               sizes="(max-width: 1024px) 100vw, 1024px"
             />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-background/50 via-transparent to-background/30" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/55 via-transparent to-white/35" />
           </div>
         </div>
 
@@ -54,7 +54,7 @@ export default function WhyChooseUs() {
           {reasons.map((r, i) => (
             <div
               key={r.title}
-              className={`rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 shadow-lg hover:border-white/20 transition-all duration-300 ${
+              className={`rounded-2xl border border-white/80 bg-white/50 backdrop-blur-xl p-6 shadow-lg hover:border-primary/25 transition-all duration-300 ${
                 visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}
               style={{ transitionDelay: visible ? `${100 + i * 80}ms` : "0ms" }}

@@ -92,7 +92,7 @@ export default function CheckoutEmbedPage() {
               </p>
             </div>
             {(ctx?.amountLabel || ctx?.trackingId || ctx?.packageName) && (
-              <div className="rounded-2xl border border-white/10 bg-background/50 p-4 backdrop-blur-sm space-y-2 text-sm">
+              <div className="rounded-2xl border border-border/50 bg-white/60 p-4 backdrop-blur-md space-y-2 text-sm shadow-sm">
                 {ctx.packageName ? (
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Package</span>

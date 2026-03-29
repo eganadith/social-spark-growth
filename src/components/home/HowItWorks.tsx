@@ -42,7 +42,7 @@ export default function HowItWorks() {
               animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.45, delay: 0.08 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ y: -4 }}
-              className="text-center rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-6 shadow-lg"
+              className="text-center rounded-2xl border border-white/80 bg-white/50 backdrop-blur-xl p-6 shadow-lg"
             >
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-bg shadow-md">
                 <s.icon className="h-7 w-7 text-white" />

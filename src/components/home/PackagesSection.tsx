@@ -100,7 +100,7 @@ export default function PackagesSection() {
   return (
     <section id="packages" className="relative py-20 md:py-24 overflow-hidden" ref={ref}>
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-25"
+        className="pointer-events-none absolute inset-0 opacity-30"
         style={{
           background:
             "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,133,41,0.25), transparent), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(129,52,175,0.12), transparent), radial-gradient(ellipse 50% 40% at 0% 80%, rgba(81,91,212,0.12), transparent)",
@@ -121,7 +121,7 @@ export default function PackagesSection() {
             Same transparent AED pricing on Instagram, Facebook, and TikTok — pick your platform and scale with a
             package built for creators and brands.
           </p>
-          <p className="mt-3 text-xs font-medium text-emerald-600/90 dark:text-emerald-400/90 max-w-lg mx-auto">
+          <p className="mt-3 text-xs font-medium text-emerald-700/90 max-w-lg mx-auto">
             Place your order in-app — you get a tracking ID as soon as you submit.
           </p>
           <p className="mt-4 text-sm text-foreground/80 max-w-lg mx-auto">
@@ -177,8 +177,8 @@ export default function PackagesSection() {
           transition={{ delay: 0.35, duration: 0.5 }}
           className="mt-12 text-center space-y-2"
         >
-          <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">🔥 Limited daily slots available</p>
-          <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+          <p className="text-sm font-semibold text-orange-600">🔥 Limited daily slots available</p>
+          <p className="text-sm font-semibold text-amber-600">
             ⚡ Results start shortly after purchase
           </p>
         </motion.div>

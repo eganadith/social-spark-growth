@@ -112,13 +112,13 @@ export default function TrackPage() {
           height={1080}
           decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/65 to-background/90 backdrop-blur-[1px]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/55 to-white/85 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
       </div>
 
       <div className="relative z-10 flex min-h-[100dvh] flex-col px-4 pb-20 pt-24 md:pb-16 md:pt-28">
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
-          <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-6 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)] backdrop-blur-2xl ring-1 ring-white/10 md:p-8 supports-[backdrop-filter]:bg-white/[0.06]">
+          <div className="rounded-2xl border border-white/90 bg-white/60 p-6 shadow-[0_24px_80px_-20px_hsla(220,30%,30%,0.18)] backdrop-blur-2xl ring-1 ring-white/80 md:p-8 supports-[backdrop-filter]:bg-white/55">
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Track your order</h1>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -127,13 +127,13 @@ export default function TrackPage() {
             </div>
 
             {!isSupabaseConfigured && (
-              <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-muted-foreground">
+              <div className="mb-6 rounded-xl border border-border/60 bg-white/50 px-4 py-3 text-center text-sm text-muted-foreground backdrop-blur-sm">
                 Connect Supabase to load orders from your database.
               </div>
             )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-              <div className="flex min-h-12 flex-1 items-center rounded-xl border border-white/12 bg-white/[0.06] px-3 backdrop-blur-sm">
+              <div className="flex min-h-12 flex-1 items-center rounded-xl border border-border/60 bg-white/55 px-3 backdrop-blur-md">
                 <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                 <input
                   type="text"
@@ -155,7 +155,7 @@ export default function TrackPage() {
             </div>
 
             {searched && !order && (
-              <div className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] py-8 text-center">
+              <div className="mt-8 rounded-xl border border-border/60 bg-white/50 py-8 text-center backdrop-blur-sm">
                 <AlertCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground px-2">
                   No order found for this ID. Check the code in your email and try again.
@@ -164,28 +164,28 @@ export default function TrackPage() {
             )}
 
             {order && config && (
-              <div className="mt-8 space-y-5 border-t border-white/10 pt-6">
+              <div className="mt-8 space-y-5 border-t border-border/50 pt-6">
                 <div className="text-center py-1">
                   <config.icon className={`mx-auto mb-3 h-12 w-12 ${config.color}`} />
                   <div className={`text-lg font-bold ${config.color}`}>{config.label}</div>
                   <div className="mt-1 font-mono text-xs text-muted-foreground break-all px-2">{order.tracking_id}</div>
                 </div>
 
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-black/10">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-orange-400 via-pink-500 to-violet-500 transition-all duration-1000 ease-out"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.05] p-4 backdrop-blur-sm text-sm">
+                <div className="space-y-3 rounded-xl border border-border/60 bg-white/50 p-4 backdrop-blur-md text-sm">
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Last update</span>
                     <span className="text-right font-medium text-foreground">
                       {new Date(order.created_at).toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed pt-1 border-t border-white/10">
+                  <p className="text-xs text-muted-foreground leading-relaxed pt-1 border-t border-border/40">
                     Package and profile details are available in your account dashboard after you sign in.
                   </p>
                 </div>

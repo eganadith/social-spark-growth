@@ -38,7 +38,7 @@ export default function HeroSection() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-muted-foreground mb-6 backdrop-blur-md"
+                className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/55 px-4 py-2 text-sm font-medium text-muted-foreground mb-6 backdrop-blur-xl shadow-sm"
               >
                 <Zap className="h-4 w-4 text-pink-400" />
                 2,400+ profiles boosted this week · No password required
@@ -93,7 +93,7 @@ export default function HeroSection() {
 
                 <Link
                   to={`/order?pkg=${encodeURIComponent(INFLUENCER_PACK_PKG)}`}
-                  className="group relative w-full rounded-2xl border border-white/10 bg-white/[0.06] p-4 pt-6 backdrop-blur-md shadow-lg transition-colors hover:bg-white/[0.09] package-popular-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="group relative w-full rounded-2xl border border-white/80 bg-white/50 p-4 pt-6 backdrop-blur-xl shadow-lg transition-colors hover:bg-white/65 package-popular-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label="Influencer Pack: 10K followers for 499 AED — open order with this package"
                 >
                   <span className="absolute right-3 top-0 z-10 -translate-y-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-orange-500 via-pink-600 to-violet-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md sm:text-xs sm:right-4">
@@ -136,7 +136,7 @@ export default function HeroSection() {
                 </Link>
 
                 <Link to={{ pathname: "/", hash: "packages" }} className="w-full sm:w-auto self-center lg:self-start">
-                  <Button variant="outline" size="xl" className="w-full sm:w-auto min-h-12 rounded-2xl border-white/15 bg-white/5 backdrop-blur-sm">
+                  <Button variant="outline" size="xl" className="w-full sm:w-auto min-h-12 rounded-2xl border-border/70 bg-white/45 backdrop-blur-md shadow-sm hover:bg-white/60">
                     View packages
                   </Button>
                 </Link>
@@ -166,7 +166,7 @@ export default function HeroSection() {
               {floatIcons.map(({ Icon, className, delay }) => (
                 <motion.div
                   key={className}
-                  className={`absolute z-10 hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-card/80 shadow-lg backdrop-blur-md ${className}`}
+                  className={`absolute z-10 hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-white/80 bg-white/55 shadow-lg backdrop-blur-xl ${className}`}
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay }}
                   aria-hidden
@@ -174,7 +174,7 @@ export default function HeroSection() {
                   <Icon className="h-5 w-5" />
                 </motion.div>
               ))}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-card aspect-[4/5] sm:aspect-[5/6] lg:aspect-[4/5] ring-1 ring-white/5">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/80 bg-card aspect-[4/5] sm:aspect-[5/6] lg:aspect-[4/5] ring-1 ring-black/5">
                 <img
                   src="/Images/Content_creator_filming_202603202229.jpeg"
                   alt="Creator filming content for social media"
@@ -185,8 +185,8 @@ export default function HeroSection() {
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/10 to-transparent pointer-events-none" />
-                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md px-4 py-3 text-left">
-                  <p className="text-xs font-semibold text-white/90">Followers delivered</p>
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/80 bg-white/55 backdrop-blur-xl px-4 py-3 text-left shadow-lg">
+                  <p className="text-xs font-semibold text-foreground">Followers delivered</p>
                   <p className="text-2xl font-black ig-gradient-text tabular-nums">127,843+</p>
                 </div>
               </div>

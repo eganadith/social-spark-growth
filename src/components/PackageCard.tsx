@@ -32,7 +32,7 @@ export default function PackageCard({ pkg, index, visible }: Props) {
       }}
       /* Avoid scale on the full card — in 5-up grids it bleeds into neighbors. Lift only. */
       whileHover={{ y: -6 }}
-      className={`relative min-w-0 h-full flex flex-col rounded-2xl p-5 sm:p-6 backdrop-blur-md bg-white/70 dark:bg-white/[0.07] border border-white/40 dark:border-white/10 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)] isolate overflow-x-hidden ${
+      className={`relative min-w-0 h-full flex flex-col rounded-2xl p-5 sm:p-6 backdrop-blur-xl bg-white/65 border border-white/90 shadow-[0_8px_32px_-8px_hsla(220,30%,30%,0.1)] isolate overflow-x-hidden ${
         pkg.popular ? "package-popular-glow z-[1]" : ""
       }`}
     >
@@ -49,7 +49,7 @@ export default function PackageCard({ pkg, index, visible }: Props) {
           </span>
         )}
         {pkg.premium && (
-          <span className="absolute right-0 top-0 z-10 rounded-full border border-violet-300/60 bg-violet-50/90 dark:bg-violet-950/60 px-2.5 py-1 text-[10px] font-semibold text-violet-800 dark:text-violet-200 shadow-sm">
+          <span className="absolute right-0 top-0 z-10 rounded-full border border-violet-300/70 bg-violet-50/95 px-2.5 py-1 text-[10px] font-semibold text-violet-800 shadow-sm backdrop-blur-sm">
             💎 Premium
           </span>
         )}

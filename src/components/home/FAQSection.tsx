@@ -17,7 +17,7 @@ export default function FAQSection() {
   const { ref, visible } = useScrollReveal();
 
   return (
-    <section className="py-20 md:py-24 border-t border-white/5" ref={ref}>
+    <section className="py-20 md:py-24 border-t border-border/50" ref={ref}>
       <div className="container mx-auto px-4 max-w-2xl">
         <div
           className={`text-center mb-12 transition-all duration-700 ${

@@ -29,7 +29,7 @@ export default function AffiliatePromoSection() {
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/55 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4 backdrop-blur-xl shadow-sm">
             <Sparkles className="h-3.5 w-3.5 text-pink-400" />
             Viral loop
           </div>
@@ -51,7 +51,7 @@ export default function AffiliatePromoSection() {
           {REWARD_MILESTONES.map((m, i) => (
             <div
               key={m.code}
-              className="rounded-2xl border border-white/10 bg-card/40 backdrop-blur-xl p-5 shadow-lg text-center"
+              className="rounded-2xl border border-white/80 bg-white/50 backdrop-blur-xl p-5 shadow-lg text-center"
               style={{ transitionDelay: visible ? `${80 + i * 60}ms` : "0ms" }}
             >
               <div className="text-xs font-bold text-muted-foreground mb-2">{m.referrals} paid referral{m.referrals > 1 ? "s" : ""}</div>
@@ -66,7 +66,7 @@ export default function AffiliatePromoSection() {
           initial={false}
           animate={visible ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.25, duration: 0.45 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-6 backdrop-blur-xl"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 rounded-2xl border border-white/80 bg-gradient-to-br from-white/60 to-white/25 p-6 backdrop-blur-xl shadow-md"
         >
           <div className="flex items-center gap-3 text-sm text-muted-foreground text-center sm:text-left">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl gradient-bg">
